@@ -1,34 +1,38 @@
-const BotConfig = require('../utils/config');
+const Config = require('../utils/config');
 const Logger = require('../utils/logger');
 
 module.exports = {
     name: 'intro',
-    description: 'Giới thiệu về Lol.AI',
+    description: '🤖 Giới thiệu về Lol.AI',
     usage: '.intro',
+    
     async execute(message, args) {
         const embed = {
             color: 0xff3366,
-            title: '**Lol.AI** - Trợ lý AI server Lol',
-            description: 'Xin chào tất cả thành viên server Lol!',
+            title: '**Lol.AI**',
+            description: 'Xin chào! Tôi là AI của server Lol 🎮',
+            thumbnail: {
+                url: 'https://cdn.discordapp.com/emojis/1065110910463193149.webp'
+            },
             fields: [
                 {
-                    name: '👋 Về tôi',
-                    value: 'Tôi là **Lol.AI** - AI riêng cho server Lol!',
+                    name: '🚀 Về tôi',
+                    value: 'Tôi là **Lol.AI** - trợ lý AI!',
                     inline: false
                 },
                 {
-                    name: '💬 Chức năng',
-                    value: '• Trò chuyện thông minh\n• Hỗ trợ giải đáp\n• Giúp đỡ thành viên\n• Mang lại không khí vui vẻ',
+                    name: '🎮 Cách sử dụng',
+                    value: `\`${Config.PREFIX}ask <câu hỏi>\` - Chat với AI\n\`${Config.PREFIX}clear\` - Xóa lịch sử\n\`${Config.PREFIX}ping\` - Kiểm tra tốc độ`,
                     inline: false
                 },
                 {
-                    name: '🎮 Sử dụng',
-                    value: `Dùng lệnh \`${BotConfig.PREFIX}ask\` để chat!\nVí dụ: \`${BotConfig.PREFIX}ask Bạn khỏe không?\``,
+                    name: '🔧 Công nghệ',
+                    value: `• **AI Engine**: Google Gemini ${Config.GEMINI_MODEL}\n• **Backend**: ???\n• **Hosting**: Meomaybe\n• **Speed**: -999999 <5s`,
                     inline: false
                 }
             ],
-            footer: {
-                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${BotConfig.BOT_VERSION}`
+            footer: { 
+                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${Config.BOT_VERSION} |V4.0.0`
             },
             timestamp: new Date()
         };
