@@ -18,18 +18,18 @@ class Config {
         this.PORT = process.env.PORT || 3000;
         this.NODE_ENV = process.env.NODE_ENV || 'production';
         
-        // Gemini configuration - Tối ưu tốc độ
-        this.GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'; // Model nhanh nhất
-        this.MAX_TOKENS = parseInt(process.env.MAX_TOKENS) || 1024; // Giảm để tăng tốc
+        // Gemini configuration - SỬA: gemini-2.0-flash
+        this.GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+        this.MAX_TOKENS = parseInt(process.env.MAX_TOKENS) || 1024;
         this.TEMPERATURE = parseFloat(process.env.TEMPERATURE) || 0.7;
         
         // Bot information
         this.BOT_NAME = 'Lol.AI';
-        this.BOT_VERSION = '4.0.0';
-        this.BOT_DESCRIPTION = 'AI Assistant siêu tốc với Gemini';
+        this.BOT_VERSION = '5.0.0';
+        this.BOT_DESCRIPTION = 'AI Assistant với Gemini 2.0 Flash';
         
         // Performance settings
-        this.MAX_HISTORY = parseInt(process.env.MAX_HISTORY) || 5; // Giảm lịch sử để tăng tốc
+        this.MAX_HISTORY = parseInt(process.env.MAX_HISTORY) || 5;
         this.COOLDOWN_SECONDS = parseInt(process.env.COOLDOWN_SECONDS) || 2;
     }
 
@@ -49,8 +49,6 @@ class Config {
             if (this.NODE_ENV === 'production') {
                 Logger.error('Không thể khởi động trong môi trường production');
                 process.exit(1);
-            } else {
-                Logger.warn('Chạy ở chế độ development với config thiếu');
             }
         }
     }
@@ -62,20 +60,10 @@ class Config {
         Logger.info(`Model Gemini: ${this.GEMINI_MODEL}`);
         Logger.info(`Max tokens: ${this.MAX_TOKENS}`);
         Logger.info(`Max history: ${this.MAX_HISTORY}`);
-        
-        // Mask API key for security
-        const maskedKey = this.GEMINI_API_KEY 
-            ? `${this.GEMINI_API_KEY.substring(0, 10)}...${this.GEMINI_API_KEY.substring(this.GEMINI_API_KEY.length - 4)}`
-            : 'CHƯA CẤU HÌNH';
-        Logger.debug(`Gemini API Key: ${maskedKey}`);
     }
 
     isDevelopment() {
         return this.NODE_ENV === 'development';
-    }
-
-    isProduction() {
-        return this.NODE_ENV === 'production';
     }
 }
 
