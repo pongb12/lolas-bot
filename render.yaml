@@ -1,17 +1,27 @@
 services:
   - type: web
-    name: lol-ai-discord-bot
+    name: lol-ai-bot
     env: node
+    region: singapore  # Chọn Singapore cho tốc độ tốt nhất với Việt Nam
+    plan: free
+    branch: main
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PREFIX
         value: "."
-    plan: free
-    autoDeploy: true
-    healthCheckPath: /health
+      - key: GEMINI_MODEL
+        value: "gemini-1.5-flash"  # Model nhanh nhất
+      - key: MAX_TOKENS
+        value: "1024"
+      - key: MAX_HISTORY
+        value: "5"
+      - key: COOLDOWN_SECONDS
+        value: "2"
     disk:
       name: tmp
       mountPath: /tmp
