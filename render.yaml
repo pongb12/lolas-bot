@@ -2,7 +2,7 @@ services:
   - type: web
     name: lol-ai-bot
     env: node
-    region: singapore  # Chọn Singapore cho tốc độ tốt nhất với Việt Nam
+    region: singapore
     plan: free
     branch: main
     buildCommand: npm install
@@ -15,14 +15,10 @@ services:
       - key: PREFIX
         value: "."
       - key: GEMINI_MODEL
-        value: "gemini-2.0-flash"  # Model nhanh nhất
+        value: "gemini-2.0-flash-exp"
       - key: MAX_TOKENS
         value: "1024"
       - key: MAX_HISTORY
         value: "5"
       - key: COOLDOWN_SECONDS
         value: "2"
-    disk:
-      name: tmp
-      mountPath: /tmp
-      sizeGB: 1
