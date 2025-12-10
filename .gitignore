@@ -1,23 +1,17 @@
-# Environment variables
+# Config files
+config.development.js
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Secrets
+secrets/
+*.secret
+*.key
 
-# Runtime data
-logs/
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
+# Development files
+.dev/
 .vscode/
 .idea/
-*.swp
-*.swo
