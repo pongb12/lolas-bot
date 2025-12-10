@@ -1,4 +1,4 @@
-const config = require('../utils/config');
+const BotConfig = require('../utils/config');
 const Logger = require('../utils/logger');
 
 module.exports = {
@@ -8,40 +8,32 @@ module.exports = {
     async execute(message, args) {
         const embed = {
             color: 0xff3366,
-            title: '**Lol.AI** - Trợ lý AI của server Lol',
-            description: 'Xin chào tất cả thành viên Lol!',
-            thumbnail: {
-                url: 'https://cdn.discordapp.com/emojis/1065110910463193149.webp'
-            },
+            title: '**Lol.AI** - Trợ lý AI server Lol',
+            description: 'Xin chào tất cả thành viên server Lol!',
             fields: [
                 {
                     name: '👋 Về tôi',
-                    value: 'Tôi là **Lol.AI** - trợ lý AI được tạo riêng cho server Discord Lol!\nTôi luôn sẵn sàng trò chuyện và hỗ trợ các thành viên.',
+                    value: 'Tôi là **Lol.AI** - AI riêng cho server Lol!',
                     inline: false
                 },
                 {
-                    name: '💬 Chức năng chính',
-                    value: '• Trò chuyện về mọi chủ đề\n• Hỗ trợ giải đáp thắc mắc\n• Giúp đỡ thành viên trong server\n• Mang lại không khí vui vẻ',
+                    name: '💬 Chức năng',
+                    value: '• Trò chuyện thông minh\n• Hỗ trợ giải đáp\n• Giúp đỡ thành viên\n• Mang lại không khí vui vẻ',
                     inline: false
                 },
                 {
-                    name: '🎮 Cách sử dụng',
-                    value: `Dùng lệnh \`${config.PREFIX}ask\` để chat với tôi!\nVí dụ: \`${config.PREFIX}ask Bạn có khỏe không?\``,
-                    inline: false
-                },
-                {
-                    name: '⚙️ Công nghệ',
-                    value: '• **Backend:** ???\n• **AI Engine:** Google Gemini\n•',
+                    name: '🎮 Sử dụng',
+                    value: `Dùng lệnh \`${BotConfig.PREFIX}ask\` để chat!\nVí dụ: \`${BotConfig.PREFIX}ask Bạn khỏe không?\``,
                     inline: false
                 }
             ],
             footer: {
-                text: `Được tạo với ❤️ dành riêng cho server Lol | Phiên bản ${config.BOT_VERSION}`
+                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${BotConfig.BOT_VERSION}`
             },
             timestamp: new Date()
         };
 
         await message.reply({ embeds: [embed] });
-        Logger.info(`[Command] intro executed by ${message.author.tag}`);
+        Logger.info(`Command 'intro' bởi ${message.author.tag}`);
     }
 };
