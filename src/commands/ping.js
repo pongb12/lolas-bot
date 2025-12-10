@@ -38,7 +38,7 @@ module.exports = {
                 { name: '📊 Đánh giá', value: `**${speedStatus}**`, inline: false },
                 { name: '🤖 Thông tin', value: `Model: \`${Config.GEMINI_MODEL}\``, inline: false }
             ],
-            footer: { text: 'Lol.AI - Tối ưu tốc độ' },
+            footer: { text: 'Lol.AI - Hi!' },
             timestamp: new Date()
         };
         
