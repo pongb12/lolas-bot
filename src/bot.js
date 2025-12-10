@@ -1,3 +1,15 @@
+const config = require('./utils/config');
+
+// Nếu là development, load config từ file local
+if (config.isDevelopment()) {
+    try {
+        const devConfig = require('../config.development.js');
+        console.log('⚠️  Đang chạy ở chế độ DEVELOPMENT với config local');
+    } catch (error) {
+        console.warn('⚠️  Không tìm thấy config.development.js');
+        console.warn('Tạo file config.development.js từ config.example.js để chạy local');
+    }
+}
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
