@@ -3,19 +3,18 @@ const Config = require('../utils/config');
 
 module.exports = {
     name: 'ping',
-    description: '🏓 Kiểm tra độ trễ và tốc độ bot',
+    description: '🏓 Kiểm tra độ trễ',
     usage: '.ping',
     
     async execute(message, args) {
         const startTime = Date.now();
-        const sent = await message.reply('🏓 Đang đo tốc độ phản hồi...');
+        const sent = await message.reply('🏓 Đang kiểm tra...');
         
         const messageLatency = sent.createdTimestamp - message.createdTimestamp;
         const apiLatency = Math.round(message.client.ws.ping);
         const totalTime = Date.now() - startTime;
         
-        // Đánh giá tốc độ
-        let speedStatus = '🔴 Rất chậm';
+        let speedStatus = '🔴 Chậm';
         let speedEmoji = '🐌';
         
         if (totalTime < 100) {
@@ -27,44 +26,19 @@ module.exports = {
         } else if (totalTime < 500) {
             speedStatus = '🟡 Bình thường';
             speedEmoji = '🐎';
-        } else if (totalTime < 1000) {
-            speedStatus = '🟠 Hơi chậm';
-            speedEmoji = '🚶';
         }
         
         const embed = {
             color: totalTime < 300 ? 0x00ff00 : totalTime < 500 ? 0xffff00 : 0xff0000,
-            title: `${speedEmoji} Pong! - Tốc độ hệ thống`,
+            title: `${speedEmoji} Pong!`,
             fields: [
-                { 
-                    name: '📶 Độ trễ tin nhắn', 
-                    value: `\`${messageLatency}ms\``, 
-                    inline: true 
-                },
-                { 
-                    name: '🌐 Latency', 
-                    value: `\`${apiLatency}ms\``, 
-                    inline: true 
-                },
-                { 
-                    name: '⏱️ Tổng thời gian xử lý', 
-                    value: `\`${totalTime}ms\``, 
-                    inline: true 
-                },
-                { 
-                    name: '📊 Đánh giá tốc độ', 
-                    value: `**${speedStatus}**`, 
-                    inline: false 
-                },
-                { 
-                    name: '🤖 Thông tin bot', 
-                    value: `Model: \`${Config.GEMINI_MODEL}\`\nPrefix: \`${Config.PREFIX}\`\nPhiên bản: \`${Config.BOT_VERSION}\``, 
-                    inline: false 
-                }
+                { name: '📶 Độ trễ tin nhắn', value: `\`${messageLatency}ms\``, inline: true },
+                { name: '🌐 Latency', value: `\`${apiLatency}ms\``, inline: true },
+                { name: '⏱️ Tổng thời gian', value: `\`${totalTime}ms\``, inline: true },
+                { name: '📊 Đánh giá', value: `**${speedStatus}**`, inline: false },
+                { name: '🤖 Thông tin', value: `Model: \`${Config.GEMINI_MODEL}\``, inline: false }
             ],
-            footer: { 
-                text: 'Lol.AI - Sus' 
-            },
+            footer: { text: 'Lol.AI - Tối ưu tốc độ' },
             timestamp: new Date()
         };
         
