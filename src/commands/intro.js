@@ -9,30 +9,22 @@ module.exports = {
     async execute(message, args) {
         const embed = {
             color: 0xff3366,
-            title: '**Lol.AI**',
-            description: 'Xin chào! Tôi là AI của server Lol 🎮',
-            thumbnail: {
-                url: 'https://cdn.discordapp.com/emojis/1065110910463193149.webp'
-            },
+            title: '🤖 **Lol.AI - theo mô hình của Google Gemini**',
+            description: 'Xin chào! Tôi là trợ lý AI của server Lol 🎮',
             fields: [
                 {
                     name: '🚀 Về tôi',
-                    value: 'Tôi là **Lol.AI** - trợ lý AI!',
+                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **Gemini** để phản hồi ',
                     inline: false
                 },
                 {
-                    name: '🎮 Cách sử dụng',
+                    name: '🎮 Sử dụng',
                     value: `\`${Config.PREFIX}ask <câu hỏi>\` - Chat với AI\n\`${Config.PREFIX}clear\` - Xóa lịch sử\n\`${Config.PREFIX}ping\` - Kiểm tra tốc độ`,
-                    inline: false
-                },
-                {
-                    name: '🔧 Công nghệ',
-                    value: `• **AI Engine**: Google Gemini ${Config.GEMINI_MODEL}\n• **Backend**: ???\n• **Hosting**: Meomaybe\n• **Speed**: -999999 <5s`,
                     inline: false
                 }
             ],
             footer: { 
-                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${Config.BOT_VERSION} |V4.0.0`
+                text: `Được tạo cho server Lol | Phiên bản ${Config.BOT_VERSION} | Gemini❤`
             },
             timestamp: new Date()
         };
