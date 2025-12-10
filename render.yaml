@@ -1,1 +1,18 @@
-
+services:
+  - type: web
+    name: lol-ai-discord-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PREFIX
+        value: "."
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    disk:
+      name: tmp
+      mountPath: /tmp
+      sizeGB: 1
