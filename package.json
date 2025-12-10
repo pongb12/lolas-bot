@@ -1,7 +1,7 @@
 {
   "name": "discord-lolai-bot",
-  "version": "4.0.0",
-  "description": "Lol.AI Discord Bot với Gemini ",
+  "version": "5.0.0",
+  "description": "Lol.AI Discord Bot với Gemini",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -11,8 +11,7 @@
   "dependencies": {
     "discord.js": "^14.14.1",
     "@google/generative-ai": "^0.21.0",
-    "express": "^4.18.2",
-    "axios": "^1.6.0"
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=18.0.0"
