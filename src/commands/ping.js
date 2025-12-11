@@ -43,7 +43,7 @@ module.exports = {
             .setTitle(`${speedEmoji} Pong! - Tốc độ hệ thống`)
             .addFields(
                 { name: '📶 Độ trễ tin nhắn', value: `\`${messageLatency}ms\``, inline: true },
-                { name: '🌐 latency', value: `\`${apiLatency}ms\``, inline: true },
+                { name: '🌐 Latency', value: `\`${apiLatency}ms\``, inline: true },
                 { name: '⏱️ Tổng thời gian', value: `\`${totalTime}ms\``, inline: true },
                 { name: '📊 Đánh giá tốc độ', value: `**${speedStatus}**`, inline: false },
                 { 
