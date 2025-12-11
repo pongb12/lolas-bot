@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lol-ai-bot
+    name: lol-ai-deepseek-bot
     env: node
     region: singapore
     plan: free
@@ -14,8 +14,8 @@ services:
         value: production
       - key: PREFIX
         value: "."
-      - key: GEMINI_MODEL
-        value: "gemini-2.0-flash-exp"
+      - key: DEEPSEEK_MODEL
+        value: "deepseek-chat"
       - key: MAX_TOKENS
         value: "1024"
       - key: MAX_HISTORY
