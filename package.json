@@ -1,7 +1,7 @@
 {
   "name": "discord-deepseek-bot",
   "version": "6.0.1",
-  "description": "Lol.AI Discord Bot với DeepSeek API",
+  "description": "Lol.AI Discord Bot với DeepSeek",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
