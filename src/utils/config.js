@@ -26,7 +26,7 @@ class Config {
         // Bot information
         this.BOT_NAME = 'Lol.AI';
         this.BOT_VERSION = '5.0.0';
-        this.BOT_DESCRIPTION = 'AI Assistant với Gemini 2.0 Flash';
+        this.BOT_DESCRIPTION = 'AI Assistant với Gemini 1.5 Flash';
         
         // Performance settings
         this.MAX_HISTORY = parseInt(process.env.MAX_HISTORY) || 5;
