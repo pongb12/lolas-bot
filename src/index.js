@@ -17,6 +17,7 @@ class Application {
     setupExpress() {
         this.app.use(express.json());
         
+        // Health check
         this.app.get('/', (req, res) => {
             const uptime = process.uptime();
             const hours = Math.floor(uptime / 3600);
@@ -27,25 +28,23 @@ class Application {
                 status: 'online',
                 service: Config.BOT_NAME,
                 version: Config.BOT_VERSION,
-                model: Config.GEMINI_MODEL,
+                ai_engine: 'DeepSeek',
                 uptime: `${hours}h ${minutes}m ${seconds}s`,
                 timestamp: new Date().toISOString()
             });
         });
         
         this.app.get('/health', (req, res) => {
-            res.status(200).json({
-                status: 'healthy',
-                timestamp: Date.now()
-            });
+            res.status(200).json({ status: 'healthy', timestamp: Date.now() });
         });
         
         this.app.get('/ping', (req, res) => {
             res.json({ ping: 'pong', timestamp: Date.now() });
         });
         
+        // 404
         this.app.use('*', (req, res) => {
-            res.status(404).json({ error: 'Not found' });
+            res.status(404).json({ error: 'Endpoint not found' });
         });
     }
     
@@ -58,6 +57,7 @@ class Application {
             Logger.error('UNHANDLED REJECTION:', reason);
         });
         
+        // Graceful shutdown
         const shutdown = async (signal) => {
             Logger.warn(`Nhận ${signal}, đang tắt...`);
             
@@ -72,8 +72,6 @@ class Application {
                         Logger.error('Buộc tắt do timeout');
                         process.exit(1);
                     }, 5000);
-                } else {
-                    process.exit(0);
                 }
             } catch (error) {
                 Logger.error('Lỗi khi tắt:', error);
@@ -87,11 +85,13 @@ class Application {
     
     async start() {
         try {
+            // Start web server
             this.server = this.app.listen(this.port, () => {
                 Logger.success(`🌐 Web server chạy trên port ${this.port}`);
                 Logger.success(`📊 Health check: http://localhost:${this.port}/health`);
             });
             
+            // Start Discord bot
             Logger.info('🤖 Đang khởi động Discord bot...');
             this.bot = new DiscordBot();
             await this.bot.start();
@@ -112,6 +112,7 @@ class Application {
     }
 }
 
+// Khởi động
 if (require.main === module) {
     const app = new Application();
     app.start().catch(error => {
