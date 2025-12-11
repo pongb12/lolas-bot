@@ -8,14 +8,18 @@ class DiscordBot {
     constructor() {
         this.config = Config;
         
+        // FIX LỖI: Đã xóa GatewayIntentBits.MessageTyping
         this.client = new Client({
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent,
                 GatewayIntentBits.GuildMembers,
-                GatewayIntentBits.MessageTyping,
-            ]
+                // ĐÃ XÓA: GatewayIntentBits.MessageTyping (gây lỗi)
+            ],
+            partials: [], // Thêm nếu cần
+            restTimeOffset: 0,
+            failIfNotExists: false,
         });
         
         this.commands = new Collection();
@@ -62,7 +66,7 @@ class DiscordBot {
             this.client.user.setPresence({
                 activities: [{
                     name: `${this.config.PREFIX}help để xem lệnh`,
-                    type: 0
+                    type: 0 // PLAYING
                 }],
                 status: 'online'
             });
@@ -70,6 +74,7 @@ class DiscordBot {
         
         // Message event
         this.client.on('messageCreate', async (message) => {
+            // Bỏ qua nếu là bot hoặc không có prefix
             if (message.author.bot || !message.content.startsWith(this.config.PREFIX)) return;
             
             const args = message.content.slice(this.config.PREFIX.length).trim().split(/ +/);
@@ -78,7 +83,7 @@ class DiscordBot {
             const command = this.commands.get(commandName);
             if (!command) return;
             
-            // Rate limiting
+            // Rate limiting per user
             const userId = message.author.id;
             const now = Date.now();
             const userLimits = this.rateLimits.get(userId) || { count: 0, resetTime: now + 60000 };
@@ -88,7 +93,7 @@ class DiscordBot {
                 userLimits.resetTime = now + 60000;
             }
             
-            if (userLimits.count >= 15) { // 15 lệnh/phút
+            if (userLimits.count >= 15) { // Tối đa 15 lệnh/phút
                 await message.reply('⏰ **Bạn đang gửi lệnh quá nhanh!** Vui lòng chờ 1 phút.');
                 return;
             }
@@ -96,7 +101,7 @@ class DiscordBot {
             userLimits.count++;
             this.rateLimits.set(userId, userLimits);
             
-            // Cooldown
+            // Cooldown per command
             if (!this.cooldowns.has(command.name)) {
                 this.cooldowns.set(command.name, new Collection());
             }
@@ -120,7 +125,7 @@ class DiscordBot {
             timestamps.set(userId, now);
             setTimeout(() => timestamps.delete(userId), cooldownAmount);
             
-            // Execute command
+            // Thực thi command
             try {
                 await command.execute(message, args);
             } catch (error) {
@@ -131,7 +136,19 @@ class DiscordBot {
         
         // Error handling
         this.client.on('error', (error) => {
-            Logger.error('Lỗi Discord:', error.message);
+            Logger.error('Lỗi Discord client:', error.message);
+        });
+        
+        this.client.on('warn', (warning) => {
+            Logger.warn('Cảnh báo Discord:', warning);
+        });
+        
+        this.client.on('disconnect', () => {
+            Logger.warn('Bot đã ngắt kết nối, đang thử kết nối lại...');
+        });
+        
+        this.client.on('reconnecting', () => {
+            Logger.info('Đang kết nối lại Discord...');
         });
     }
     
@@ -143,8 +160,22 @@ class DiscordBot {
             return this.client;
         } catch (error) {
             Logger.error('Lỗi đăng nhập Discord:', error.message);
+            
+            // Gợi ý fix lỗi
+            if (error.message.includes('token')) {
+                Logger.error('👉 KIỂM TRA: DISCORD_TOKEN trong biến môi trường');
+                Logger.error('👉 KIỂM TRA: Bot đã được mời vào server chưa?');
+                Logger.error('👉 KIỂM TRA: Message Content Intent đã bật chưa?');
+            }
+            
             throw error;
         }
+    }
+    
+    async stop() {
+        Logger.info('Đang dừng bot...');
+        this.client.destroy();
+        Logger.success('Bot đã dừng');
     }
 }
 
