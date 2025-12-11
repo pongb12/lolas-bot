@@ -19,7 +19,7 @@ class Config {
         this.NODE_ENV = process.env.NODE_ENV || 'production';
         
         // Gemini configuration - SỬA: gemini-2.0-flash
-        this.GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+        this.GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
         this.MAX_TOKENS = parseInt(process.env.MAX_TOKENS) || 1024;
         this.TEMPERATURE = parseFloat(process.env.TEMPERATURE) || 0.7;
         
