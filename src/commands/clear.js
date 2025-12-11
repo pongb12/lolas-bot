@@ -1,88 +1,126 @@
-const gemini = require('../gemini');
+const deepseek = require('../deepseek');
 const Logger = require('../utils/logger');
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js'); // Cần import
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 module.exports = {
     name: 'clear',
-    description: '🗑️ Xem lịch sử và xóa chat với Lol.AI',
+    description: '🗑️ Xem và xóa lịch sử chat',
     usage: '.clear',
     
     async execute(message, args) {
         const userId = message.author.id;
-        const userHistory = gemini.getHistoryInfo(userId);
+        const userHistory = deepseek.getHistoryInfo(userId);
         
         // 1. Kiểm tra nếu không có lịch sử
         if (!userHistory.hasHistory) {
-            return message.reply('🤔 Bạn chưa có lịch sử chat nào để xóa!');
+            return message.reply({
+                content: '🤔 Bạn chưa có lịch sử chat nào để xóa!',
+                ephemeral: true
+            });
         }
         
-        // 2. Lấy toàn bộ lịch sử để hiển thị
-        const history = gemini.initUserHistory(userId);
-        // Lọc bỏ 2 tin nhắn system prompt đầu tiên
-        const userConversation = history.slice(2);
+        // 2. Lấy lịch sử để hiển thị
+        const history = userHistory.history;
         
-        // 3. Định dạng lịch sử để hiển thị (giới hạn độ dài)
-        let historyPreview = `**Lịch sử chat gần đây của bạn (${userHistory.totalMessages} tin nhắn):**\n`;
-        userConversation.slice(-5).forEach((msg, index) => { // Hiển thị 5 tin gần nhất
-            const role = msg.role === 'user' ? '**Bạn:**' : '**Lol.AI:**';
-            const shortText = msg.parts[0].text.length > 100 
-                ? msg.parts[0].text.substring(0, 100) + '...' 
-                : msg.parts[0].text;
-            historyPreview += `\n${role} ${shortText}`;
-        });
-        historyPreview += `\n\nBạn có chắc chắn muốn **xóa toàn bộ** lịch sử này không?`;
+        // 3. Tạo embed hiển thị lịch sử
+        const historyEmbed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle('📜 Lịch sử chat của bạn')
+            .setDescription(`Bạn có **${userHistory.totalMessages}** tin nhắn trong lịch sử.`)
+            .setFooter({ text: 'Bạn có muốn xóa toàn bộ lịch sử này không?' })
+            .setTimestamp();
+        
+        // Thêm 3 tin nhắn gần nhất vào embed
+        const recentMessages = history.slice(-3);
+        if (recentMessages.length > 0) {
+            let historyText = '';
+            recentMessages.forEach((msg, index) => {
+                const role = msg.role === 'user' ? '👤 **Bạn:**' : '🤖 **Lol.AI:**';
+                const shortText = msg.content.length > 80 
+                    ? msg.content.substring(0, 80) + '...' 
+                    : msg.content;
+                historyText += `\n${role} ${shortText}\n`;
+            });
+            historyEmbed.addFields({
+                name: 'Tin nhắn gần nhất:',
+                value: historyText
+            });
+        }
         
         // 4. Tạo buttons xác nhận
         const confirmRow = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId('confirm_clear_yes')
-                    .setLabel('✅ Có, Xóa đi')
-                    .setStyle(ButtonStyle.Danger),
+                    .setLabel('✅ Có, Xóa hết')
+                    .setStyle(ButtonStyle.Danger)
+                    .setEmoji('🗑️'),
                 new ButtonBuilder()
                     .setCustomId('confirm_clear_no')
                     .setLabel('❌ Không, Giữ lại')
                     .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('💾')
             );
         
-        // 5. Gửi tin nhắn hỏi xác nhận
+        // 5. Gửi tin nhắn xác nhận
         const confirmMessage = await message.reply({
-            content: historyPreview,
+            embeds: [historyEmbed],
             components: [confirmRow]
         });
         
-        // 6. Thu thập phản hồi từ button (chỉ từ user gốc)
+        // 6. Collector cho buttons
         const filter = (interaction) => interaction.user.id === userId;
         const collector = confirmMessage.createMessageComponentCollector({ 
             filter, 
-            time: 30000 // Hết hạn sau 30 giây
+            time: 30000, // 30 giây
+            max: 1
         });
         
         collector.on('collect', async (interaction) => {
             if (interaction.customId === 'confirm_clear_yes') {
                 // Xóa lịch sử
-                gemini.clearHistory(userId);
+                deepseek.clearHistory(userId);
+                
+                const successEmbed = new EmbedBuilder()
+                    .setColor(0x00FF00)
+                    .setTitle('✅ Đã xóa lịch sử!')
+                    .setDescription(`Đã xóa ${userHistory.totalMessages} tin nhắn.\nBạn có thể bắt đầu cuộc hội thoại mới với \`${message.client.config?.PREFIX || '.'}ask\`.`)
+                    .setTimestamp();
+                
                 await interaction.update({
-                    content: '🗑️ **Đã xóa lịch sử chat!** Bạn có thể bắt đầu cuộc hội thoại mới.',
-                    components: [] // Xóa buttons
-                });
-                Logger.info(`Command 'clear' - ${message.author.tag} đã xác nhận xóa lịch sử.`);
-            } else if (interaction.customId === 'confirm_clear_no') {
-                await interaction.update({
-                    content: '✅ **Đã giữ lại lịch sử chat.** Mọi thứ vẫn như cũ.',
+                    embeds: [successEmbed],
                     components: []
                 });
-                Logger.info(`Command 'clear' - ${message.author.tag} đã hủy xóa lịch sử.`);
+                
+                Logger.info(`Command 'clear' - ${message.author.tag} đã xóa lịch sử.`);
+                
+            } else if (interaction.customId === 'confirm_clear_no') {
+                const cancelEmbed = new EmbedBuilder()
+                    .setColor(0xFFA500)
+                    .setTitle('💾 Đã giữ lại lịch sử')
+                    .setDescription('Lịch sử chat của bạn vẫn được lưu giữ.')
+                    .setTimestamp();
+                
+                await interaction.update({
+                    embeds: [cancelEmbed],
+                    components: []
+                });
+                
+                Logger.info(`Command 'clear' - ${message.author.tag} đã hủy xóa.`);
             }
-            collector.stop(); // Dừng collector
         });
         
-        collector.on('end', collected => {
-            if (collected.size === 0) {
-                // Nếu hết giờ không ai nhấn, vô hiệu hóa buttons
-                confirmMessage.edit({ 
-                    content: `${historyPreview}\n\n⏰ **Đã hết thời gian xác nhận (30s).** Lịch sử không bị xóa.`,
-                    components: [] 
+        collector.on('end', (collected, reason) => {
+            if (reason === 'time' && collected.size === 0) {
+                const timeoutEmbed = new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setTitle('⏰ Hết thời gian xác nhận')
+                    .setDescription('Lịch sử không bị xóa do không có phản hồi trong 30 giây.')
+                    .setTimestamp();
+                
+                confirmMessage.edit({
+                    embeds: [timeoutEmbed],
+                    components: []
                 }).catch(() => {});
             }
         });
