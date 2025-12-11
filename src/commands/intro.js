@@ -15,7 +15,7 @@ module.exports = {
             .addFields(
                 {
                     name: '🚀 Về tôi',
-                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **DeepSeek Platform**🤑',
+                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **DeepSeek**🤑',
                     inline: false
                 },
                 {
