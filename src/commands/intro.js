@@ -1,5 +1,6 @@
 const Config = require('../utils/config');
 const Logger = require('../utils/logger');
+const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
     name: 'intro',
@@ -7,29 +8,29 @@ module.exports = {
     usage: '.intro',
     
     async execute(message, args) {
-        const embed = {
-            color: 0xff3366,
-            title: '🤖 **Lol.AI - theo mô hình của Google Gemini**',
-            description: 'Xin chào! Tôi là trợ lý AI của server Lol 🎮',
-            fields: [
+        const introEmbed = new EmbedBuilder()
+            .setColor(0xFF3366)
+            .setTitle('🤖 **Lol.AI - Trợ lý AI với DeepSeek**')
+            .setDescription('Xin chào! Tôi là trợ lý AI chính thức của server Lol 🎮')
+            .addFields(
                 {
                     name: '🚀 Về tôi',
-                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **Gemini** để phản hồi ',
+                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **DeepSeek Platform**🤑',
                     inline: false
                 },
                 {
-                    name: '🎮 Sử dụng',
-                    value: `\`${Config.PREFIX}ask <câu hỏi>\` - Chat với AI\n\`${Config.PREFIX}clear\` - Xóa lịch sử\n\`${Config.PREFIX}ping\` - Kiểm tra tốc độ`,
+                    name: '🎮 Cách sử dụng',
+                    value: `\`${Config.PREFIX}ask <câu hỏi>\` - Chat với AI\n\`${Config.PREFIX}clear\` - Xem & xóa lịch sử\n\`${Config.PREFIX}ping\` - Kiểm tra tốc độ`,
                     inline: false
-                }
-            ],
-            footer: { 
-                text: `Được tạo cho server Lol | Phiên bản ${Config.BOT_VERSION} | Gemini❤`
-            },
-            timestamp: new Date()
-        };
+                },
+            )
+            .setFooter({ 
+                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${Config.BOT_VERSION} | Powered by DeepSeek`
+            })
+            .setTimestamp()
+            .setThumbnail('https://cdn.discordapp.com/emojis/1065110910463193149.webp');
 
-        await message.reply({ embeds: [embed] });
+        await message.reply({ embeds: [introEmbed] });
         Logger.info(`Command 'intro' bởi ${message.author.tag}`);
     }
 };
