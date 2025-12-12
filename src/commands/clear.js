@@ -1,4 +1,4 @@
-const deepseek = require('../deepseek');
+const deepseek = require('../ai');
 const Logger = require('../utils/logger');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
