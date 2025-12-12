@@ -46,6 +46,7 @@ class AIHandler {
         2. Nếu có số liệu, hãy đề cập nguồn (nếu biết)
         3. Ưu tiên thông tin mới nhất
         4. Trình bày ngắn gọn, có cấu trúc
+        5. Ưu tiên trả lời bằng tiếng Anh để tiết kiệm Token
         
         Tìm kiếm: ${query}`;
         
@@ -134,7 +135,7 @@ class AIHandler {
             
             Hãy trả lời:
             1. NGẮN GỌN (1-3 câu khi có thể)
-            2. Bằng tiếng Việt tự nhiên
+            2. Bằng tiếng Việt tự nhiên, nhưng nếu quá dài dùng tiếng Anh để tiết kiệm Token
             3. Thêm chút hài hước nếu phù hợp
             4. KHÔNG giải thích dài dòng
             5. Nếu không biết, nói thẳng`,
