@@ -48,7 +48,7 @@ module.exports = {
                     { name: '📊 Thông tin tìm được', value: response.length > 1024 ? response.substring(0, 1020) + '...' : response, inline: false }
                 )
                 .setFooter({ 
-                    text: `Lol.AI Search | Model: ${Config.GROQ_MODEL} | Kết quả có thể chưa đầy đủ`,
+                    text: `Lol.AI Search | Model: Groq | Kết quả có thể chưa đầy đủ`,
                     iconURL: 'https://cdn.discordapp.com/emojis/1065110910463193149.webp'
                 })
                 .setTimestamp();
