@@ -1,7 +1,7 @@
 {
-  "name": "discord-deepseek-bot",
-  "version": "6.0.1",
-  "description": "Lol.AI Discord Bot với DeepSeek",
+  "name": "discord-lolai-bot",
+  "version": "7.0.0",
+  "description": "Lol.AI Discord Bot với Groq & Private Chat",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -15,7 +15,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["discord", "bot", "deepseek", "ai"],
+  "keywords": ["discord", "bot", "groq", "ai", "private-chat"],
   "author": "Lol.AI",
   "license": "MIT"
 }
