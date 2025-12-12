@@ -42,7 +42,7 @@ module.exports = {
         const helpEmbed = new EmbedBuilder()
             .setColor(0x7289DA)
             .setTitle(`🤖 ${Config.BOT_NAME} - Hướng dẫn đầy đủ`)
-            .setDescription(`**Prefix:** \`${Config.PREFIX}\` | **AI Model:** \`${Config.GROQ_MODEL}\` | **Version:** \`${Config.BOT_VERSION}\``)
+            .setDescription(`**Prefix:** \`${Config.PREFIX}\` | **AI Model:**: Groq | **Version:** \`${Config.BOT_VERSION}\``)
             .setFooter({ text: `Dùng ${Config.PREFIX}help <tên-lệnh> để xem chi tiết` })
             .setTimestamp();
 
