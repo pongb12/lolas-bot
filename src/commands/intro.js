@@ -10,12 +10,12 @@ module.exports = {
     async execute(message, args) {
         const introEmbed = new EmbedBuilder()
             .setColor(0xFF3366)
-            .setTitle('🤖 **Lol.AI - Trợ lý AI với DeepSeek**')
+            .setTitle('🤖 **Lol.AI - Trợ lý AI với Groq**')
             .setDescription('Xin chào! Tôi là trợ lý AI chính thức của server Lol 🎮')
             .addFields(
                 {
                     name: '🚀 Về tôi',
-                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **DeepSeek**🤑',
+                    value: 'Tôi là **Lol.AI** - trợ lý AI sử dụng **Groq**🤑',
                     inline: false
                 },
                 {
@@ -25,7 +25,7 @@ module.exports = {
                 },
             )
             .setFooter({ 
-                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${Config.BOT_VERSION} | Powered by DeepSeek`
+                text: `Được tạo với ❤️ cho server Lol | Phiên bản ${Config.BOT_VERSION} | Powered by Groq`
             })
             .setTimestamp()
             .setThumbnail('https://cdn.discordapp.com/emojis/1065110910463193149.webp');
