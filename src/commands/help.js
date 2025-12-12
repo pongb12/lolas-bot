@@ -31,7 +31,7 @@ module.exports = {
                         { name: '🎯 Cách dùng', value: `\`${cmd.usage}\``, inline: false },
                         { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết')}\``, inline: false }
                     )
-                    .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: ${Config.GROQ_MODEL}` })
+                    .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq })
                     .setTimestamp();
 
                 return message.reply({ embeds: [embed] });
