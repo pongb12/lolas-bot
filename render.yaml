@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lol-ai-deepseek-bot
+    name: lol-ai-groq-bot
     env: node
     region: singapore
     plan: free
@@ -14,11 +14,15 @@ services:
         value: production
       - key: PREFIX
         value: "."
-      - key: DEEPSEEK_MODEL
-        value: "deepseek-chat"
+      - key: GROQ_MODEL
+        value: "llama-3.1-8b-instant"
       - key: MAX_TOKENS
         value: "1024"
       - key: MAX_HISTORY
-        value: "5"
+        value: "10"
       - key: COOLDOWN_SECONDS
         value: "2"
+      - key: PRIVATE_CHANNEL_TIMEOUT
+        value: "3600000"
+      - key: MAX_PRIVATE_CHANNELS
+        value: "20"
