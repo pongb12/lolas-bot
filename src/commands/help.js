@@ -19,7 +19,7 @@ module.exports = {
             { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' }
         ];
 
-        // Hiển thị chi tiết một lệnh cụ thể
+        // Hiển thị chi tiết một lệnh
         if (args[0]) {
             const cmd = commands.find(c => c.name === args[0].toLowerCase());
             if (cmd) {
@@ -27,46 +27,46 @@ module.exports = {
                     .setColor(0x0099FF)
                     .setTitle(`📖 Lệnh: ${Config.PREFIX}${cmd.name}`)
                     .addFields(
-                        { name: '📝 Mô tả', value: cmd.desc, inline: false },
-                        { name: '🎯 Cách dùng', value: `\`${cmd.usage}\``, inline: false },
-                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết')}\``, inline: false }
+                        { name: '📝 Mô tả', value: cmd.desc },
+                        { name: '🎯 Cách dùng', value: `\`${cmd.usage}\`` },
+                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết')}\`` }
                     )
-                    .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq })
+                    .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq` })
                     .setTimestamp();
 
                 return message.reply({ embeds: [embed] });
+            } else {
+                return message.reply(`❌ Không tìm thấy lệnh \`${args[0]}\``);
             }
         }
 
-        // Hiển thị tất cả lệnh
+        // Hiển thị danh sách lệnh
         const helpEmbed = new EmbedBuilder()
             .setColor(0x7289DA)
             .setTitle(`🤖 ${Config.BOT_NAME} - Hướng dẫn đầy đủ`)
-            .setDescription(`**Prefix:** \`${Config.PREFIX}\` | **AI Model:**: Groq | **Version:** \`${Config.BOT_VERSION}\``)
+            .setDescription(`**Prefix:** \`${Config.PREFIX}\` | **AI Model:** Groq | **Version:** \`${Config.BOT_VERSION}\``)
             .setFooter({ text: `Dùng ${Config.PREFIX}help <tên-lệnh> để xem chi tiết` })
             .setTimestamp();
 
-        // Chia commands thành 2 cột
         const midIndex = Math.ceil(commands.length / 2);
         const firstColumn = commands.slice(0, midIndex);
         const secondColumn = commands.slice(midIndex);
 
         helpEmbed.addFields({
             name: '📋 Lệnh Cơ Bản',
-            value: firstColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\`\n`).join('\n'),
+            value: firstColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\``).join('\n\n'),
             inline: true
         });
 
         helpEmbed.addFields({
             name: '📋 Lệnh Nâng Cao',
-            value: secondColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\`\n`).join('\n'),
+            value: secondColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\``).join('\n\n'),
             inline: true
         });
 
         helpEmbed.addFields({
             name: '🌟 Tính năng mới',
-            value: '🔒 **Private Chat**: Chat riêng trong server\n🔍 **Search**: Tìm kiếm thông tin chi tiết\n🗑️ **Clear**: Quản lý lịch sử chat\n',
-            inline: false
+            value: '🔒 **Private Chat**: Chat riêng trong server\n🔍 **Search**: Tìm kiếm thông tin chi tiết\n🗑️ **Clear**: Quản lý lịch sử chat'
         });
 
         await message.reply({ embeds: [helpEmbed] });
