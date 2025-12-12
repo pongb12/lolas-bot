@@ -48,7 +48,7 @@ module.exports = {
                 { name: '📊 Đánh giá tốc độ', value: `**${speedStatus}**`, inline: false },
                 { 
                     name: '🤖 Thông tin bot', 
-                    value: `AI: \`DeepSeek\`\nPrefix: \`${Config.PREFIX}\`\nPhiên bản: \`${Config.BOT_VERSION}\``, 
+                    value: `AI: \`Groq\`\nPrefix: \`${Config.PREFIX}\`\nPhiên bản: \`${Config.BOT_VERSION}\``, 
                     inline: false 
                 }
             )
