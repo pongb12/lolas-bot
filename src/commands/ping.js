@@ -52,7 +52,7 @@ module.exports = {
                     inline: false 
                 }
             )
-            .setFooter({ text: 'Lol.AI - Powered by DeepSeek' })
+            .setFooter({ text: 'Lol.AI - Powered by Groq' })
             .setTimestamp();
         
         await sent.edit({ content: '', embeds: [pingEmbed] });
