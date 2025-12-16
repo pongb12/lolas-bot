@@ -82,12 +82,12 @@ module.exports = {
         collector.on('collect', async (interaction) => {
             // XÓA
             if (interaction.customId === 'confirm_clear_yes') {
-                const result = ai.clearAllHistory(userId); // sử dụng hàm đúng trong AIHandler
+                const deletedCount = ai.clearAllHistory(userId); // sử dụng hàm đúng trong AIHandler
 
                 const successEmbed = new EmbedBuilder()
                     .setColor(0x00FF00)
                     .setTitle('✅ Đã xóa toàn bộ lịch sử!')
-                    .setDescription(`Đã xóa **${totalMessages}** tin nhắn (public + private).`)
+                    .setDescription(`Đã xóa **${deletedCount}** tin nhắn (public + private).`)
                     .setTimestamp();
 
                 await interaction.update({
@@ -95,7 +95,7 @@ module.exports = {
                     components: []
                 }).catch(() => {});
 
-                Logger.info(`Command 'clear' - ${message.author.tag} đã xóa toàn bộ lịch sử.`);
+                Logger.info(`Command 'clear' - ${message.author.tag} đã xóa ${deletedCount} tin nhắn.`);
             }
 
             // HỦY
