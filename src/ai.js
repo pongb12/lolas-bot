@@ -165,6 +165,33 @@ class AIHandler {
         }
     }
 
+    /* ================= HISTORY INFO ================= */
+    getHistoryInfo(userId) {
+        const publicHistory = this.publicHistories.has(userId) ? this.publicHistories.get(userId).messages : [];
+        const privateHistory = this.privateHistories.has(userId) ? this.privateHistories.get(userId).messages : [];
+
+        return {
+            public: { history: publicHistory },
+            private: { history: privateHistory }
+        };
+    }
+
+    /* ================= CLEAR HISTORY ================= */
+    clearAllHistory(userId) {
+        let count = 0;
+        if (this.publicHistories.has(userId)) {
+            count += this.publicHistories.get(userId).messages.length;
+            this.publicHistories.delete(userId);
+            this.clearCache(userId, 'public');
+        }
+        if (this.privateHistories.has(userId)) {
+            count += this.privateHistories.get(userId).messages.length;
+            this.privateHistories.delete(userId);
+            this.clearCache(userId, 'private');
+        }
+        return count;
+    }
+
     /* ================= CLEANUP ================= */
 
     startMemoryCleanup() {
