@@ -35,7 +35,7 @@ class Config {
         
         // Bot info
         this.BOT_NAME = 'Lol.AI';
-        this.BOT_VERSION = '1.5.2';
+        this.BOT_VERSION = '1.5.5';
         this.BOT_DESCRIPTION = 'AI Assistant với Groq & Private Chat';
     }
 
