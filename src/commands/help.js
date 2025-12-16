@@ -14,6 +14,7 @@ module.exports = {
             { name: 'privatechat', desc: '🔒 Tạo private chat riêng', usage: '.privatechat' },
             { name: 'endprvchat', desc: '🚫 Kết thúc private chat', usage: '.endprvchat' },
             { name: 'clear', desc: '🗑️ Xem và xóa lịch sử chat', usage: '.clear' },
+            { name: 'feedbacks', desc: '📢 Gửi phản hồi cho devs', usage: '.feedbacks <nội dung>' },
             { name: 'ping', desc: '🏓 Kiểm tra độ trễ', usage: '.ping' },
             { name: 'intro', desc: '🤖 Giới thiệu về bot', usage: '.intro' },
             { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' }
@@ -29,7 +30,7 @@ module.exports = {
                     .addFields(
                         { name: '📝 Mô tả', value: cmd.desc },
                         { name: '🎯 Cách dùng', value: `\`${cmd.usage}\`` },
-                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết')}\`` }
+                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết').replace('<nội dung>', 'Bot rất hay!')}\`` }
                     )
                     .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq` })
                     .setTimestamp();
@@ -66,7 +67,7 @@ module.exports = {
 
         helpEmbed.addFields({
             name: '🌟 Tính năng mới',
-            value: '🔒 **Private Chat**: Chat riêng trong server\n🔍 **Search**: Tìm kiếm thông tin chi tiết\n🗑️ **Clear**: Quản lý lịch sử chat'
+            value: '🔒 **Private Chat**: Chat riêng trong server\n🔍 **Search**: Tìm kiếm thông tin chi tiết\n🗑️ **Clear**: Quản lý lịch sử chat\n📢 **Feedbacks**: Gửi phản hồi trực tiếp cho tác giả'
         });
 
         await message.reply({ embeds: [helpEmbed] });
