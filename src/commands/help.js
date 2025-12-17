@@ -21,88 +21,65 @@ module.exports = {
             { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' }
         ];
 
-        // Thêm lệnh owner nếu user là owner
         const isOwner = message.author.id === Config.OWNER_ID;
         if (isOwner) {
-            commands.push(
-                { name: 'unblock', desc: '🔓 Gỡ chặn user (Admin)', usage: '.unblock <userId>' }
-            );
+            commands.push({
+                name: 'unblock',
+                desc: '🔓 Gỡ chặn user (Admin)',
+                usage: '.unblock <userId>'
+            });
         }
 
-        // Hiển thị chi tiết một lệnh
         if (args[0]) {
             const cmd = commands.find(c => c.name === args[0].toLowerCase());
-            if (cmd) {
-                const embed = new EmbedBuilder()
-                    .setColor(0x0099FF)
-                    .setTitle(`📖 Lệnh: ${Config.PREFIX}${cmd.name}`)
-                    .addFields(
-                        { name: '📝 Mô tả', value: cmd.desc },
-                        { name: '🎯 Cách dùng', value: `\`${cmd.usage}\`` },
-                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!')
-                            .replace('<truy vấn>', 'thời tiết')
-                            .replace('<nội dung>', 'Bot rất hay!')
-                            .replace('<lý do>', 'Tôi vô tình vi phạm')
-                            .replace('<userId>', '123456789012345678')}\`` }
-                    )
-                    .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq` })
-                    .setTimestamp();
-
-                return message.reply({ embeds: [embed] });
-            } else {
+            if (!cmd) {
                 return message.reply(`❌ Không tìm thấy lệnh \`${args[0]}\``);
             }
+
+            const embed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(`📖 Lệnh: ${Config.PREFIX}${cmd.name}`)
+                .addFields(
+                    { name: '📝 Mô tả', value: cmd.desc },
+                    { name: '🎯 Cách dùng', value: `\`${cmd.usage}\`` }
+                )
+                .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION}` })
+                .setTimestamp();
+
+            return message.reply({ embeds: [embed] });
         }
 
-        // Hiển thị danh sách lệnh
         const helpEmbed = new EmbedBuilder()
             .setColor(0x7289DA)
-            .setTitle(`🤖 ${Config.BOT_NAME} - Hướng dẫn đầy đủ`)
-            .setDescription(`**Prefix:** \`${Config.PREFIX}\` | **AI Model:** Groq | **Version:** \`${Config.BOT_VERSION}\``)
-            .setFooter({ text: `Dùng ${Config.PREFIX}help <tên-lệnh> để xem chi tiết` })
+            .setTitle(`🤖 ${Config.BOT_NAME} - Hướng dẫn`)
+            .setDescription(`Prefix: \`${Config.PREFIX}\` | Version: \`${Config.BOT_VERSION}\``)
             .setTimestamp();
 
-        const midIndex = Math.ceil(commands.length / 2);
-        const firstColumn = commands.slice(0, midIndex);
-        const secondColumn = commands.slice(midIndex);
-
         helpEmbed.addFields({
-            name: '📋 Lệnh Cơ Bản',
-            value: firstColumn.map(cmd => {
-                const ownerOnly = cmd.name === 'unblock' ? ' *(Admin)*' : '';
-                return `**${Config.PREFIX}${cmd.name}**${ownerOnly}\n${cmd.desc}\n\`${cmd.usage}\``;
-            }).join('\n\n'),
-            inline: true
+            name: '📋 Danh sách lệnh',
+            value: commands
+                .map(cmd => `**${Config.PREFIX}${cmd.name}**${cmd.name === 'unblock' ? ' *(Admin)*' : ''}\n${cmd.desc}`)
+                .join('\n\n')
         });
 
         helpEmbed.addFields({
-            name: '📋 Lệnh Nâng Cao',
-            value: secondColumn.map(cmd => {
-                const ownerOnly = cmd.name === 'unblock' ? ' *(Admin)*' : '';
-                return `**${Config.PREFIX}${cmd.name}**${ownerOnly}\n${cmd.desc}\n\`${cmd.usage}\``;
-            }).join('\n\n'),
-            inline: true
-        });
-
-        helpEmbed.addFields({
-            name: '🌟 Tính năng mới',
-            value: '🔒 **Private Chat**: Chat riêng trong server\n' +
-                   '🔍 **Search**: Tìm kiếm thông tin chi tiết\n' +
-                   '🗑️ **Clear**: Quản lý lịch sử chat\n' +
-                   '📢 **Feedbacks**: Gửi phản hồi cho chủ bot\n' +
-                   '🛡️ **Security**: Hệ thống bảo mật prompt nâng cao\n' +
-                   '📝 **Appeal**: Kháng cáo khi bị chặn\n' +
-                   
+            name: '🌟 Tính năng',
+            value:
+                '🔒 Private Chat\n' +
+                '🔍 Search thông tin\n' +
+                '🗑️ Quản lý lịch sử\n' +
+                '📢 Feedback & Appeal\n' +
+                '🛡️ Bảo mật nâng cao'
         });
 
         if (isOwner) {
             helpEmbed.addFields({
-                name: ' Lệnh Admin,
-                value: 'Các lệnh này chỉ hiển thị cho Admin.'
+                name: '🔐 Admin',
+                value: 'Các lệnh quản trị chỉ hiển thị cho Owner.'
             });
         }
 
         await message.reply({ embeds: [helpEmbed] });
-        Logger.info(`Command 'help' bởi ${message.author.tag} (Owner: ${isOwner})`);
+        Logger.info(`Help command by ${message.author.tag} (Owner: ${isOwner})`);
     }
 };
