@@ -14,11 +14,20 @@ module.exports = {
             { name: 'privatechat', desc: '🔒 Tạo private chat riêng', usage: '.privatechat' },
             { name: 'endprvchat', desc: '🚫 Kết thúc private chat', usage: '.endprvchat' },
             { name: 'clear', desc: '🗑️ Xem và xóa lịch sử chat', usage: '.clear' },
-            { name: 'feedbacks', desc: '📢 Gửi phản hồi cho devs', usage: '.feedbacks <nội dung>' },
+            { name: 'feedbacks', desc: '📢 Gửi phản hồi cho tác giả', usage: '.feedbacks <nội dung>' },
+            { name: 'appeal', desc: '📝 Gửi kháng cáo khi bị chặn', usage: '.appeal <lý do>' },
             { name: 'ping', desc: '🏓 Kiểm tra độ trễ', usage: '.ping' },
             { name: 'intro', desc: '🤖 Giới thiệu về bot', usage: '.intro' },
             { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' }
         ];
+
+        // Thêm lệnh owner nếu user là owner
+        const isOwner = message.author.id === Config.OWNER_ID;
+        if (isOwner) {
+            commands.push(
+                { name: 'unblock', desc: '🔓 Gỡ chặn user (Admin)', usage: '.unblock <userId>' }
+            );
+        }
 
         // Hiển thị chi tiết một lệnh
         if (args[0]) {
@@ -30,7 +39,11 @@ module.exports = {
                     .addFields(
                         { name: '📝 Mô tả', value: cmd.desc },
                         { name: '🎯 Cách dùng', value: `\`${cmd.usage}\`` },
-                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!').replace('<truy vấn>', 'thời tiết').replace('<nội dung>', 'Bot rất hay!')}\`` }
+                        { name: '✨ Ví dụ', value: `\`${cmd.usage.replace('<câu hỏi>', 'Xin chào!')
+                            .replace('<truy vấn>', 'thời tiết')
+                            .replace('<nội dung>', 'Bot rất hay!')
+                            .replace('<lý do>', 'Tôi vô tình vi phạm')
+                            .replace('<userId>', '123456789012345678')}\`` }
                     )
                     .setFooter({ text: `${Config.BOT_NAME} v${Config.BOT_VERSION} | Model: Groq` })
                     .setTimestamp();
@@ -55,22 +68,41 @@ module.exports = {
 
         helpEmbed.addFields({
             name: '📋 Lệnh Cơ Bản',
-            value: firstColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\``).join('\n\n'),
+            value: firstColumn.map(cmd => {
+                const ownerOnly = cmd.name === 'unblock' ? ' *(Admin)*' : '';
+                return `**${Config.PREFIX}${cmd.name}**${ownerOnly}\n${cmd.desc}\n\`${cmd.usage}\``;
+            }).join('\n\n'),
             inline: true
         });
 
         helpEmbed.addFields({
             name: '📋 Lệnh Nâng Cao',
-            value: secondColumn.map(cmd => `**${Config.PREFIX}${cmd.name}**\n${cmd.desc}\n\`${cmd.usage}\``).join('\n\n'),
+            value: secondColumn.map(cmd => {
+                const ownerOnly = cmd.name === 'unblock' ? ' *(Admin)*' : '';
+                return `**${Config.PREFIX}${cmd.name}**${ownerOnly}\n${cmd.desc}\n\`${cmd.usage}\``;
+            }).join('\n\n'),
             inline: true
         });
 
         helpEmbed.addFields({
             name: '🌟 Tính năng mới',
-            value: '🔒 **Private Chat**: Chat riêng trong server\n🔍 **Search**: Tìm kiếm thông tin chi tiết\n🗑️ **Clear**: Quản lý lịch sử chat\n📢 **Feedbacks**: Gửi phản hồi trực tiếp cho tác giả'
+            value: '🔒 **Private Chat**: Chat riêng trong server\n' +
+                   '🔍 **Search**: Tìm kiếm thông tin chi tiết\n' +
+                   '🗑️ **Clear**: Quản lý lịch sử chat\n' +
+                   '📢 **Feedbacks**: Gửi phản hồi cho chủ bot\n' +
+                   '🛡️ **Security**: Hệ thống bảo mật prompt nâng cao\n' +
+                   '📝 **Appeal**: Kháng cáo khi bị chặn\n' +
+                   
         });
 
+        if (isOwner) {
+            helpEmbed.addFields({
+                name: ' Lệnh Admin,
+                value: 'Các lệnh này chỉ hiển thị cho Admin.'
+            });
+        }
+
         await message.reply({ embeds: [helpEmbed] });
-        Logger.info(`Command 'help' bởi ${message.author.tag}`);
+        Logger.info(`Command 'help' bởi ${message.author.tag} (Owner: ${isOwner})`);
     }
 };
