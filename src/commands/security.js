@@ -25,7 +25,7 @@ module.exports = {
                         { name: '👤 User', value: message.author.tag },
                         { name: '🆔 User ID', value: message.author.id },
                         { name: '🚫 Block Status', value: isBlocked ? '❌ **BỊ CHẶN**' : '✅ **KHÔNG BỊ CHẶN**' },
-                        { name: '📊 Attempts', value: 'Use `.appeal` nếu bị chặn oan' }
+                        { name: '📊 Attempts', value: 'Use `.appeal` nếu bị chặn nhần' }
                     )
                     .setTimestamp();
                 
