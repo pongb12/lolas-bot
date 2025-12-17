@@ -18,8 +18,8 @@ module.exports = {
             { name: 'appeal', desc: '📝 Gửi kháng cáo khi bị chặn', usage: '.appeal <lý do>' },
             { name: 'ping', desc: '🏓 Kiểm tra độ trễ', usage: '.ping' },
             { name: 'intro', desc: '🤖 Giới thiệu về bot', usage: '.intro' },
-            { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' }
-            { name: 'security', desc: '⭕Check trạng thái của user/admin', usage: '.security' }
+            { name: 'help', desc: '❓ Hiển thị hướng dẫn này', usage: '.help [lệnh]' },
+            { name: 'security', desc: '⭕ Check trạng thái của user/admin', usage: '.security' }
         ];
 
         const isOwner = message.author.id === Config.OWNER_ID;
