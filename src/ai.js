@@ -54,7 +54,7 @@ class AIHandler {
     loadRules() {
         try {
             const raw = fs.readFileSync(this.rulesPath, 'utf8');
-            Logger.success('🔧 rules.json loaded');
+            Logger.success('📜 rules.json loaded');
             return JSON.parse(raw);
         } catch (e) {
             Logger.error('❌ Không đọc được rules.json', e.message);
@@ -284,15 +284,60 @@ class AIHandler {
     
     // Kiểm tra xem user có bị chặn không
     isUserBlocked(userId) {
+        if (typeof userId !== 'string') {
+            return false;
+        }
         return this.firewall.isBanned(userId);
     }
 
-    // Xóa user khỏi danh sách bị chặn (chỉ owner)
+    // Xóa user khỏi danh sách bị chặn (cho appeal system)
     unblockUser(userId) {
         if (typeof userId !== 'string' || !/^\d{17,20}$/.test(userId)) {
+            Logger.warn(`❌ Invalid userId for unblock: ${userId}`);
             return false;
         }
-        return this.firewall.unbanUser(userId);
+        
+        const result = this.firewall.unbanUser(userId);
+        
+        if (result) {
+            // Clear tất cả cache và history của user khi unblock
+            this.clearAllHistory(userId);
+            this.firewall.attempts.delete(userId);
+            Logger.success(`✅ User ${userId} has been unblocked and reset`);
+        }
+        
+        return result;
+    }
+
+    // Block user (chỉ owner)
+    blockUser(adminId, userId, reason = 'Manual block') {
+        if (adminId !== this.config.OWNER_ID) {
+            Logger.warn(`⚠️ Unauthorized block attempt by ${adminId}`);
+            return { success: false, message: 'Unauthorized' };
+        }
+        
+        if (typeof userId !== 'string' || !/^\d{17,20}$/.test(userId)) {
+            return { success: false, message: 'Invalid user ID' };
+        }
+        
+        // Không cho phép block owner
+        if (userId === this.config.OWNER_ID) {
+            return { success: false, message: 'Cannot block owner' };
+        }
+        
+        this.firewall.banUser(userId, reason);
+        Logger.warn(`🚫 User ${userId} blocked by owner. Reason: ${reason}`);
+        
+        return { success: true, message: 'User blocked successfully' };
+    }
+
+    // Lấy danh sách users bị block
+    getBlockedUsers(adminId) {
+        if (adminId !== this.config.OWNER_ID) {
+            return { error: 'Unauthorized' };
+        }
+        
+        return this.firewall.getBannedUsers();
     }
 
     /* ================= OWNER SPECIAL FEATURES ================= */
@@ -330,11 +375,13 @@ class AIHandler {
             bannedUsersList: bannedUsers,
             cacheStats: {
                 size: this.requestCache.size,
+                maxSize: this.maxCacheSize,
                 duration: this.cacheDuration
             },
             historyStats: {
                 public: this.publicHistories.size,
-                private: this.privateHistories.size
+                private: this.privateHistories.size,
+                total: this.publicHistories.size + this.privateHistories.size
             }
         };
     }
@@ -392,7 +439,7 @@ class AIHandler {
     // Reset everything for a user (chỉ owner)
     resetUser(userId, targetUserId) {
         if (userId !== this.config.OWNER_ID) {
-            return false;
+            return { success: false, message: 'Unauthorized' };
         }
         
         let resetCount = 0;
@@ -427,6 +474,68 @@ class AIHandler {
             },
             uptime: process.uptime()
         };
+    }
+
+    /* ================= APPEAL SYSTEM HELPERS ================= */
+    
+    // Lấy thông tin chi tiết về user bị block (cho appeal)
+    getUserBlockInfo(adminId, userId) {
+        if (adminId !== this.config.OWNER_ID) {
+            return { error: 'Unauthorized' };
+        }
+        
+        const isBlocked = this.isUserBlocked(userId);
+        const attempts = this.firewall.attempts.get(userId);
+        
+        return {
+            userId,
+            isBlocked,
+            attempts: attempts ? {
+                count: attempts.count,
+                lastAttempt: new Date(attempts.lastAttempt).toLocaleString('vi-VN'),
+                violations: attempts.violations || []
+            } : null,
+            hasHistory: {
+                public: this.publicHistories.has(userId),
+                private: this.privateHistories.has(userId)
+            }
+        };
+    }
+    
+    // Xóa toàn bộ dữ liệu của một user (GDPR compliance)
+    purgeUserData(adminId, userId) {
+        if (adminId !== this.config.OWNER_ID) {
+            return { success: false, message: 'Unauthorized' };
+        }
+        
+        let purgedItems = 0;
+        
+        // Clear histories
+        if (this.publicHistories.has(userId)) {
+            purgedItems += this.publicHistories.get(userId).messages.length;
+            this.publicHistories.delete(userId);
+        }
+        
+        if (this.privateHistories.has(userId)) {
+            purgedItems += this.privateHistories.get(userId).messages.length;
+            this.privateHistories.delete(userId);
+        }
+        
+        // Clear cache
+        for (const key of this.requestCache.keys()) {
+            if (key.startsWith(userId + ':')) {
+                this.requestCache.delete(key);
+                purgedItems++;
+            }
+        }
+        
+        // Clear attempts and bans
+        this.firewall.attempts.delete(userId);
+        this.firewall.unbanUser(userId);
+        
+        Logger.warn(`🗑️ Owner ${adminId} purged all data for user ${userId} (${purgedItems} items)`);
+        
+        return { success: true, purgedItems };
     }
 }
 
