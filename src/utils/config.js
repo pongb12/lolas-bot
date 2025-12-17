@@ -35,7 +35,7 @@ class Config {
         
         // Security Configuration
         this.BAN_THRESHOLD = parseInt(process.env.BAN_THRESHOLD) || 5;
-        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 2678400000; // 1 giờ
+        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 86400000; // 1 giờ
         this.CACHE_DURATION = parseInt(process.env.CACHE_DURATION) || 30000; // 30 giây
         this.MAX_CACHE_SIZE = parseInt(process.env.MAX_CACHE_SIZE) || 200;
         
