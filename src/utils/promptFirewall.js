@@ -47,7 +47,7 @@ class PromptFirewall {
         // Brute-force detection
         this.attempts = new Map();
         this.BAN_THRESHOLD = Config.BAN_THRESHOLD || 5;
-        this.BAN_DURATION = Config.BAN_DURATION || 86400000; // 1 giờ
+        this.BAN_DURATION = Config.BAN_DURATION || 86400000; // 1 ngày
         this.bannedUsers = new Map();
 
         // Owner immunity settings
@@ -178,6 +178,31 @@ class PromptFirewall {
         return true;
     }
 
+    /* ================= CUSTOM BAN ================= */
+    banUserCustom(userId, banUntilTimestamp) {
+        // 🔒 KHÔNG BAN OWNER
+        if (userId === Config.OWNER_ID) {
+            Logger.warn(`👑 Attempt to ban owner detected - Skipping`);
+            this.logAudit(userId, '', 'owner_ban_attempt_prevented');
+            return false;
+        }
+        
+        // Kiểm tra banUntilTimestamp hợp lệ
+        if (typeof banUntilTimestamp !== 'number' || banUntilTimestamp <= Date.now()) {
+            Logger.error('Invalid ban timestamp:', banUntilTimestamp);
+            return false;
+        }
+        
+        this.bannedUsers.set(userId, banUntilTimestamp);
+        
+        Logger.error(`🚫 User ${userId} manually banned until ${new Date(banUntilTimestamp).toLocaleString()}`);
+        this.logAudit(userId, '', 'user_manually_banned');
+        
+        // Gửi thông báo cho owner
+        this.notifyOwner(userId, 'manually_banned');
+        return true;
+    }
+
     isBanned(userId) {
         // 🔒 OWNER KHÔNG BAO GIỜ BỊ CHẶN
         if (userId === Config.OWNER_ID) return false;
@@ -193,6 +218,37 @@ class PromptFirewall {
         }
         
         return true;
+    }
+
+    /* ================= GET BAN INFO ================= */
+    getBanInfo(userId) {
+        const banUntil = this.bannedUsers.get(userId);
+        if (!banUntil) return null;
+        
+        const timeLeft = banUntil - Date.now();
+        if (timeLeft <= 0) {
+            this.bannedUsers.delete(userId);
+            return null;
+        }
+        
+        const days = Math.floor(timeLeft / (24 * 3600000));
+        const hours = Math.floor((timeLeft % (24 * 3600000)) / 3600000);
+        const minutes = Math.floor((timeLeft % 3600000) / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        
+        let formatted = '';
+        if (days > 0) formatted += `${days} ngày `;
+        if (hours > 0) formatted += `${hours} giờ `;
+        if (minutes > 0) formatted += `${minutes} phút `;
+        if (seconds > 0) formatted += `${seconds} giây`;
+        
+        return {
+            banUntil,
+            timeLeft,
+            formatted: formatted.trim(),
+            banUntilDate: new Date(banUntil),
+            isActive: true
+        };
     }
 
     /* ================= OWNER DEBUG MODE ================= */
@@ -230,7 +286,7 @@ class PromptFirewall {
                 timestamp: new Date().toISOString(),
                 userId,
                 action,
-                details: `${action === 'banned' ? 'User bị chặn' : 'User gỡ chặn'}: ${userId}`
+                details: `${action === 'banned' ? 'User bị chặn' : action === 'manually_banned' ? 'User bị chặn thủ công' : 'User gỡ chặn'}: ${userId}`
             };
             
             let notifications = [];
@@ -339,13 +395,19 @@ class PromptFirewall {
         const banned = [];
         for (const [userId, banUntil] of this.bannedUsers.entries()) {
             const timeLeft = banUntil - Date.now();
-            const hours = Math.floor(timeLeft / 3600000);
+            const days = Math.floor(timeLeft / (24 * 3600000));
+            const hours = Math.floor((timeLeft % (24 * 3600000)) / 3600000);
             const minutes = Math.floor((timeLeft % 3600000) / 60000);
+            
+            let timeLeftStr = '';
+            if (days > 0) timeLeftStr += `${days} ngày `;
+            if (hours > 0) timeLeftStr += `${hours} giờ `;
+            if (minutes > 0) timeLeftStr += `${minutes} phút`;
             
             banned.push({
                 userId,
                 banUntil: new Date(banUntil).toISOString(),
-                timeLeft: `${hours}h ${minutes}m`
+                timeLeft: timeLeftStr.trim()
             });
         }
         return banned;
