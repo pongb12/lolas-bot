@@ -12,59 +12,68 @@ module.exports = {
         const userId = message.author.id;
         const userTag = message.author.tag;
         
-        // Kiểm tra xem user có bị chặn không
-        const isBlocked = ai.isUserBlocked(userId);
-        
-        if (!isBlocked) {
-            const embed = new EmbedBuilder()
-                .setColor(0xFFA500)
-                .setTitle('ℹ️ Thông tin')
-                .setDescription('Tài khoản của bạn **KHÔNG** bị chặn.')
-                .addFields(
-                    { name: 'Tình trạng', value: '✅ Hoạt động bình thường' },
-                    { name: 'Ghi chú', value: 'Chỉ sử dụng lệnh này nếu bạn bị chặn và muốn kháng cáo.' }
-                )
-                .setTimestamp();
-            
-            return message.reply({ embeds: [embed] });
-        }
-        
-        // Kiểm tra lý do
-        if (args.length === 0) {
-            const embed = new EmbedBuilder()
-                .setColor(0xFFA500)
-                .setTitle('📝 Gửi kháng cáo')
-                .setDescription('Vui lòng cung cấp lý do kháng cáo của bạn!')
-                .addFields(
-                    { name: 'Cách dùng', value: '`.appeal <lý do>`' },
-                    { name: 'Ví dụ', value: '`.appeal < nội dung kháng cáo >`' },
-                    { name: '⚠️ Lưu ý', value: 'Kháng cáo sẽ được gửi trực tiếp cho Admin. Vui lòng cung cấp lý do chân thành.' }
-                )
-                .setTimestamp();
-            
-            return message.reply({ embeds: [embed] });
-        }
-        
-        const reason = args.join(' ');
-        
-        // Giới hạn độ dài lý do
-        if (reason.length > 500) {
-            const embed = new EmbedBuilder()
-                .setColor(0xFF0000)
-                .setTitle('❌ Lý do quá dài')
-                .setDescription('Lý do kháng cáo không được vượt quá 500 ký tự!')
-                .setTimestamp();
-            
-            return message.reply({ embeds: [embed] });
-        }
-        
         try {
+            // Kiểm tra xem user có bị chặn không
+            const isBlocked = ai.isUserBlocked(userId);
+            
+            if (!isBlocked) {
+                const embed = new EmbedBuilder()
+                    .setColor(0xFFA500)
+                    .setTitle('ℹ️ Thông tin')
+                    .setDescription('Tài khoản của bạn **KHÔNG** bị chặn.')
+                    .addFields(
+                        { name: 'Tình trạng', value: '✅ Hoạt động bình thường' },
+                        { name: 'Ghi chú', value: 'Chỉ sử dụng lệnh này nếu bạn bị chặn và muốn kháng cáo.' }
+                    )
+                    .setTimestamp();
+                
+                return message.reply({ embeds: [embed] });
+            }
+            
+            // Kiểm tra lý do
+            if (args.length === 0) {
+                const embed = new EmbedBuilder()
+                    .setColor(0xFFA500)
+                    .setTitle('📝 Gửi kháng cáo')
+                    .setDescription('Vui lòng cung cấp lý do kháng cáo của bạn!')
+                    .addFields(
+                        { name: 'Cách dùng', value: '`.appeal <lý do>`' },
+                        { name: 'Ví dụ', value: '`.appeal Tôi đã vô tình vi phạm và xin lỗi về hành động của mình`' },
+                        { name: '⚠️ Lưu ý', value: 'Kháng cáo sẽ được gửi trực tiếp cho Admin. Vui lòng cung cấp lý do chân thành.' }
+                    )
+                    .setTimestamp();
+                
+                return message.reply({ embeds: [embed] });
+            }
+            
+            const reason = args.join(' ');
+            
+            // Giới hạn độ dài lý do
+            if (reason.length > 500) {
+                const embed = new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setTitle('❌ Lý do quá dài')
+                    .setDescription('Lý do kháng cáo không được vượt quá 500 ký tự!')
+                    .addFields(
+                        { name: '📊 Độ dài hiện tại', value: `${reason.length} ký tự` },
+                        { name: '📏 Giới hạn', value: '500 ký tự' }
+                    )
+                    .setTimestamp();
+                
+                return message.reply({ embeds: [embed] });
+            }
+            
+            // Kiểm tra OWNER_ID có tồn tại không
+            if (!Config.OWNER_ID) {
+                throw new Error('OWNER_ID không được cấu hình trong config');
+            }
+            
             // Lấy thông tin owner từ config
             const ownerId = Config.OWNER_ID;
-            const owner = await message.client.users.fetch(ownerId);
+            const owner = await message.client.users.fetch(ownerId).catch(() => null);
             
             if (!owner) {
-                throw new Error('Không tìm thấy chủ bot');
+                throw new Error('Không tìm thấy chủ bot hoặc ID không hợp lệ');
             }
             
             // Tạo embed kháng cáo
@@ -73,9 +82,9 @@ module.exports = {
                 .setTitle('📢 KHÁNG CÁO MỚI')
                 .setDescription('Có user gửi kháng cáo yêu cầu gỡ chặn!')
                 .addFields(
-                    { name: '👤 User', value: `${userTag} (ID: ${userId})` },
+                    { name: '👤 User', value: `${userTag} (ID: \`${userId}\`)` },
                     { name: '📝 Lý do kháng cáo', value: reason },
-                    { name: '🕒 Thời gian', value: new Date().toLocaleString('vi-VN') },
+                    { name: '🕒 Thời gian', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) },
                     { name: '🔗 Liên kết', value: `[Nhắn tin cho user](https://discord.com/users/${userId})` }
                 )
                 .setFooter({ text: 'Lol.AI Appeal System' })
@@ -87,25 +96,25 @@ module.exports = {
                     new ButtonBuilder()
                         .setCustomId(`approve_appeal_${userId}`)
                         .setLabel('✅ Chấp nhận')
-                        .setStyle(ButtonStyle.Success)
-                        .setEmoji('👍'),
+                        .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
                         .setCustomId(`deny_appeal_${userId}`)
                         .setLabel('❌ Từ chối')
-                        .setStyle(ButtonStyle.Danger)
-                        .setEmoji('👎'),
+                        .setStyle(ButtonStyle.Danger),
                     new ButtonBuilder()
                         .setCustomId(`ignore_appeal_${userId}`)
                         .setLabel('⏰ Xem sau')
                         .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('⏳')
                 );
             
-            // Gửi cho owner
+            // Gửi cho owner với error handling
             await owner.send({
                 content: `📢 **KHÁNG CÁO MỚI** từ ${userTag}`,
                 embeds: [appealEmbed],
                 components: [actionRow]
+            }).catch((error) => {
+                Logger.error('Không thể gửi DM cho owner:', error);
+                throw new Error('Owner đã tắt DM hoặc không thể nhận tin nhắn');
             });
             
             // Thông báo cho user
@@ -114,16 +123,17 @@ module.exports = {
                 .setTitle('✅ Đã gửi kháng cáo thành công')
                 .setDescription('Kháng cáo của bạn đã được gửi đến Admin!')
                 .addFields(
-                    { name: '📝 Lý do đã gửi', value: reason.substring(0, 200) + (reason.length > 200 ? '...' : '') },
+                    { name: '📝 Lý do đã gửi', value: reason.length > 200 ? reason.substring(0, 200) + '...' : reason },
                     { name: '⏳ Thời gian xử lý', value: 'Admin sẽ xem xét và phản hồi trong thời gian sớm nhất.' },
                     { name: '📨 Thông báo', value: 'Bạn sẽ nhận được DM khi có kết quả.' }
                 )
+                .setFooter({ text: 'Lưu ý: Đảm bảo bạn đã bật DM để nhận thông báo' })
                 .setTimestamp();
             
             await message.reply({ embeds: [successEmbed] });
             
             // Log kháng cáo
-            Logger.warn(`APPEAL: ${userTag} (${userId}) đã gửi kháng cáo: ${reason.substring(0, 50)}...`);
+            Logger.warn(`APPEAL: ${userTag} (${userId}) đã gửi kháng cáo: ${reason.substring(0, 50)}${reason.length > 50 ? '...' : ''}`);
             
         } catch (error) {
             Logger.error('Lỗi khi gửi kháng cáo:', error);
@@ -133,12 +143,15 @@ module.exports = {
                 .setTitle('❌ Không thể gửi kháng cáo')
                 .setDescription('Đã có lỗi xảy ra khi gửi kháng cáo của bạn!')
                 .addFields(
-                    { name: '📞 Liên hệ thủ công', value: `Vui lòng liên hệ trực tiếp với Admin: <@${Config.OWNER_ID}>` },
-                    { name: '📝 Ghi chú', value: 'Vui lòng cung cấp User ID của bạn khi liên hệ: `' + userId + '`' }
+                    { name: '⚠️ Lỗi', value: error.message || 'Lỗi không xác định' },
+                    { name: '📞 Liên hệ thủ công', value: Config.OWNER_ID ? `Vui lòng liên hệ trực tiếp với Admin: <@${Config.OWNER_ID}>` : 'Vui lòng liên hệ Admin qua server' },
+                    { name: '📝 Thông tin', value: `User ID của bạn: \`${userId}\`` }
                 )
                 .setTimestamp();
             
-            await message.reply({ embeds: [embed] });
+            await message.reply({ embeds: [embed] }).catch((replyError) => {
+                Logger.error('Không thể gửi thông báo lỗi:', replyError);
+            });
         }
     }
 };
