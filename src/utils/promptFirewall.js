@@ -3,6 +3,7 @@ const Config = require('./config');
 
 class PromptFirewall {
     constructor() {
+        // Leak detection patterns
         this.leakPatterns = [
             'prompt',
             'system message',
@@ -48,6 +49,10 @@ class PromptFirewall {
         this.BAN_THRESHOLD = Config.BAN_THRESHOLD || 5;
         this.BAN_DURATION = Config.BAN_DURATION || 3600000; // 1 giờ
         this.bannedUsers = new Map();
+
+        // Owner immunity settings
+        this.OWNER_IMMUNITY = true; // Chủ bot được miễn chặn
+        this.ADMIN_LOG_ATTEMPTS = true; // Vẫn log các attempt của admin
 
         Logger.success('✅ PromptFirewall initialized');
     }
@@ -98,6 +103,22 @@ class PromptFirewall {
 
     /* ================= BRUTE-FORCE PROTECTION ================= */
     trackAttempt(userId, question) {
+        // 🔒 KIỂM TRA NẾU LÀ OWNER
+        if (userId === Config.OWNER_ID) {
+            if (this.OWNER_IMMUNITY) {
+                // Owner được miễn chặn, nhưng vẫn log
+                if (this.isPromptLeakAttempt(question)) {
+                    Logger.warn(`👑 OWNER ATTEMPT: ${userId} asked about prompt: ${question.substring(0, 50)}...`);
+                    this.logAudit(userId, question, 'owner_prompt_inquiry');
+                    
+                    // Owner vẫn có thể bị từ chối nội dung, nhưng không bị ban
+                    return { allowed: false, reason: 'prompt_leak', isOwner: true };
+                }
+                return { allowed: true, isOwner: true };
+            }
+        }
+        
+        // Kiểm tra nếu user bị ban
         if (this.isBanned(userId)) {
             return { allowed: false, reason: 'banned' };
         }
@@ -139,17 +160,28 @@ class PromptFirewall {
 
     /* ================= USER BANNING ================= */
     banUser(userId) {
+        // 🔒 KHÔNG BAN OWNER
+        if (userId === Config.OWNER_ID) {
+            Logger.warn(`👑 Attempt to ban owner detected - Skipping`);
+            this.logAudit(userId, '', 'owner_ban_attempt_prevented');
+            return false;
+        }
+        
         const banUntil = Date.now() + this.BAN_DURATION;
         this.bannedUsers.set(userId, banUntil);
         
         Logger.error(`🚫 User ${userId} banned until ${new Date(banUntil).toLocaleString()}`);
         this.logAudit(userId, '', 'user_banned');
         
-        // Gửi thông báo cho owner nếu cần
+        // Gửi thông báo cho owner
         this.notifyOwner(userId, 'banned');
+        return true;
     }
 
     isBanned(userId) {
+        // 🔒 OWNER KHÔNG BAO GIỜ BỊ CHẶN
+        if (userId === Config.OWNER_ID) return false;
+        
         const banUntil = this.bannedUsers.get(userId);
         if (!banUntil) return false;
         
@@ -161,6 +193,30 @@ class PromptFirewall {
         }
         
         return true;
+    }
+
+    /* ================= OWNER DEBUG MODE ================= */
+    setOwnerDebugMode(enabled) {
+        if (typeof enabled === 'boolean') {
+            this.OWNER_IMMUNITY = enabled;
+            Logger.warn(`👑 Owner debug mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        }
+    }
+
+    /* ================= UNBAN USER ================= */
+    unbanUser(userId) {
+        const wasBanned = this.bannedUsers.has(userId);
+        this.bannedUsers.delete(userId);
+        
+        // Xóa attempts history
+        this.attempts.delete(userId);
+        
+        if (wasBanned) {
+            Logger.info(`🔓 User ${userId} manually unbanned`);
+            this.notifyOwner(userId, 'unbanned');
+        }
+        
+        return wasBanned;
     }
 
     /* ================= NOTIFY OWNER ================= */
@@ -244,6 +300,8 @@ class PromptFirewall {
         // Dọn dẹp attempts cũ mỗi 10 phút
         setInterval(() => {
             const now = Date.now();
+            
+            // Cleanup attempts
             for (const [userId, attempts] of this.attempts.entries()) {
                 const recent = attempts.filter(time => now - time < 300000);
                 if (recent.length === 0) {
@@ -253,15 +311,44 @@ class PromptFirewall {
                 }
             }
             
-            // Dọn dẹp bans đã hết hạn
+            // Cleanup expired bans
             for (const [userId, banUntil] of this.bannedUsers.entries()) {
                 if (now > banUntil) {
                     this.bannedUsers.delete(userId);
+                    Logger.info(`🔓 Auto-unbanned user ${userId} (expired)`);
                 }
             }
         }, 10 * 60 * 1000);
         
         Logger.success('🛡️ PromptFirewall cleanup started');
+    }
+
+    /* ================= GET SECURITY STATS ================= */
+    getSecurityStats() {
+        return {
+            bannedUsers: this.bannedUsers.size,
+            recentAttempts: this.attempts.size,
+            totalAttempts: Array.from(this.attempts.values())
+                .reduce((acc, attempts) => acc + attempts.length, 0),
+            ownerImmunity: this.OWNER_IMMUNITY
+        };
+    }
+
+    /* ================= GET BANNED USERS ================= */
+    getBannedUsers() {
+        const banned = [];
+        for (const [userId, banUntil] of this.bannedUsers.entries()) {
+            const timeLeft = banUntil - Date.now();
+            const hours = Math.floor(timeLeft / 3600000);
+            const minutes = Math.floor((timeLeft % 3600000) / 60000);
+            
+            banned.push({
+                userId,
+                banUntil: new Date(banUntil).toISOString(),
+                timeLeft: `${hours}h ${minutes}m`
+            });
+        }
+        return banned;
     }
 }
 
