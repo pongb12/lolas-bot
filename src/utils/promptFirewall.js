@@ -47,7 +47,7 @@ class PromptFirewall {
         // Brute-force detection
         this.attempts = new Map();
         this.BAN_THRESHOLD = Config.BAN_THRESHOLD || 5;
-        this.BAN_DURATION = Config.BAN_DURATION || 86400000; // 1 ngày
+        this.BAN_DURATION = Config.BAN_DURATION || 315360000000; // 1 ngày
         this.bannedUsers = new Map();
 
         // Owner immunity settings
