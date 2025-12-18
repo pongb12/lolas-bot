@@ -35,7 +35,7 @@ class Config {
         
         // Security Configuration
         this.BAN_THRESHOLD = parseInt(process.env.BAN_THRESHOLD) || 5;
-        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 86400000; // 1 giờ
+        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 315360000000; // 1 giờ
         this.CACHE_DURATION = parseInt(process.env.CACHE_DURATION) || 30000; // 30 giây
         this.MAX_CACHE_SIZE = parseInt(process.env.MAX_CACHE_SIZE) || 200;
         
@@ -91,7 +91,7 @@ class Config {
             { key: 'MAX_TOKENS', min: 100, max: 4000 },
             { key: 'MAX_HISTORY', min: 1, max: 50 },
             { key: 'BAN_THRESHOLD', min: 1, max: 20 },
-            { key: 'BAN_DURATION', min: 60000, max: 86400000 } // 1 phút đến 24 giờ
+            { key: 'BAN_DURATION', min: 60000, max: 315360000000 } // 1 phút đến 24 giờ
         ];
         
         for (const config of numericConfigs) {
