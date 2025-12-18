@@ -40,6 +40,7 @@ class DiscordBot {
                 
                 if ('name' in command && 'execute' in command) {
                     this.commands.set(command.name, command);
+                    this.client.commands = this.commands; // QUAN TRỌNG: Gán commands vào client
                     Logger.success(`Đã load command: ${command.name}`);
                 }
             }
@@ -89,7 +90,7 @@ class DiscordBot {
             await this.handleCommand(message);
         });
         
-        // Interaction event (for buttons, slash commands, etc.)
+        // Interaction event (for buttons, modals, slash commands, etc.)
         this.client.on(Events.InteractionCreate, async (interaction) => {
             await this.handleInteraction(interaction);
         });
@@ -105,13 +106,73 @@ class DiscordBot {
     }
     
     async handleInteraction(interaction) {
-        // Xử lý button interactions
-        if (interaction.isButton()) {
-            await this.handleButtonInteraction(interaction);
-            return;
+        try {
+            // XỬ LÝ MODAL SUBMIT (QUAN TRỌNG!)
+            if (interaction.isModalSubmit()) {
+                console.log('📝 Modal Submit detected:', interaction.customId);
+                
+                // Defer reply ngay để tránh timeout
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.deferReply({ ephemeral: true });
+                }
+                
+                // Kiểm tra nếu là feedback modal
+                if (interaction.customId.startsWith('feedback_modal_')) {
+                    console.log('🎯 Processing feedback modal...');
+                    
+                    const feedbackCommand = this.commands.get('feedbacks');
+                    
+                    if (!feedbackCommand) {
+                        console.error('❌ Command feedbacks not found');
+                        return await interaction.editReply({
+                            content: '❌ Lỗi hệ thống: không tìm thấy handler!'
+                        });
+                    }
+                    
+                    if (typeof feedbackCommand.handleModalSubmit !== 'function') {
+                        console.error('❌ handleModalSubmit is not a function');
+                        return await interaction.editReply({
+                            content: '❌ Lỗi hệ thống: handler không hợp lệ!'
+                        });
+                    }
+                    
+                    await feedbackCommand.handleModalSubmit(interaction);
+                    return;
+                }
+            }
+            
+            // Xử lý button interactions
+            if (interaction.isButton()) {
+                await this.handleButtonInteraction(interaction);
+                return;
+            }
+            
+            // Xử lý slash commands (nếu có)
+            if (interaction.isChatInputCommand()) {
+                const command = this.commands.get(interaction.commandName);
+                if (command) {
+                    await command.execute(interaction);
+                }
+            }
+            
+        } catch (error) {
+            Logger.error('Lỗi trong handleInteraction:', error);
+            console.error('Error stack:', error.stack);
+            
+            const errorMessage = '❌ Có lỗi xảy ra khi xử lý tương tác!';
+            
+            try {
+                if (interaction.replied) {
+                    await interaction.followUp({ content: errorMessage, ephemeral: true });
+                } else if (interaction.deferred) {
+                    await interaction.editReply({ content: errorMessage });
+                } else {
+                    await interaction.reply({ content: errorMessage, ephemeral: true });
+                }
+            } catch (replyError) {
+                Logger.error('Không thể gửi thông báo lỗi:', replyError);
+            }
         }
-        
-        // Có thể thêm xử lý cho slash commands, select menus, etc. ở đây
     }
     
     async handleButtonInteraction(interaction) {
@@ -122,6 +183,12 @@ class DiscordBot {
             customId.startsWith('deny_appeal_') || 
             customId.startsWith('ignore_appeal_')) {
             await this.handleAppealButton(interaction);
+            return;
+        }
+        
+        // Xử lý feedback button (được xử lý bởi collector trong command)
+        if (customId.startsWith('open_feedback_')) {
+            // Không cần xử lý ở đây, collector trong feedbacks.js sẽ xử lý
             return;
         }
         
@@ -165,9 +232,9 @@ class DiscordBot {
                         .setTitle('✅ Kháng cáo được chấp nhận')
                         .setDescription('Chúc mừng! Kháng cáo của bạn đã được chấp nhận.')
                         .addFields(
-                            { name: '🎉 Trạng thái', value: 'Tài khoản của bạn đã được **GỠ CHẶN**' },
+                            { name: '🎉 Trạng thái', value: 'Tài khoản của bạn đã được **Gỡ CHẶN**' },
                             { name: '✨ Lưu ý', value: 'Vui lòng tuân thủ quy định để tránh bị chặn lại.' },
-                            { name: '📝 Thời gian xử lý', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
+                            { name: '🕐 Thời gian xử lý', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
                         )
                         .setTimestamp();
                     
@@ -185,7 +252,7 @@ class DiscordBot {
                         { name: '👤 User', value: `${userTag} (ID: \`${userId}\`)` },
                         { name: '⚡ Hành động', value: 'Đã gỡ chặn thành công' },
                         { name: '👨‍💼 Xử lý bởi', value: interaction.user.tag },
-                        { name: '🕒 Thời gian', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
+                        { name: '🕐 Thời gian', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
                     )
                     .setTimestamp();
                 
@@ -211,7 +278,7 @@ class DiscordBot {
                         .addFields(
                             { name: '⛔ Trạng thái', value: 'Tài khoản của bạn vẫn **BỊ CHẶN**' },
                             { name: '📞 Hỗ trợ', value: `Nếu bạn có thắc mắc, vui lòng liên hệ: <@${this.config.OWNER_ID}>` },
-                            { name: '📝 Thời gian xử lý', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
+                            { name: '🕐 Thời gian xử lý', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
                         )
                         .setTimestamp();
                     
@@ -229,7 +296,7 @@ class DiscordBot {
                         { name: '👤 User', value: `${userTag} (ID: \`${userId}\`)` },
                         { name: '⚡ Hành động', value: 'Đã từ chối kháng cáo' },
                         { name: '👨‍💼 Xử lý bởi', value: interaction.user.tag },
-                        { name: '🕒 Thời gian', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
+                        { name: '🕐 Thời gian', value: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }
                     )
                     .setTimestamp();
                 
