@@ -96,9 +96,8 @@ module.exports = {
         const ownerId = '1003323955693764748';
 
         try {
-            // Defer reply ngay để tránh timeout
-            await interaction.deferReply({ ephemeral: true });
-
+            console.log('🔄 handleModalSubmit called');
+            
             // Lấy dữ liệu từ modal
             const title = interaction.fields.getTextInputValue('feedback_title');
             const content = interaction.fields.getTextInputValue('feedback_content');
