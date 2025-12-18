@@ -87,7 +87,7 @@ module.exports = {
                 displayTime = `${timeValue} giờ`;
                 break;
             case 'd': // ngày
-                banDuration = timeValue * 24 * 60 * 60 * 1000;
+                banDuration = timeValue * 356 * 60 * 60 * 1000;
                 displayTime = `${timeValue} ngày`;
                 break;
             default:
