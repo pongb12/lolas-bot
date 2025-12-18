@@ -5,69 +5,83 @@ module.exports = {
     
     async execute(interaction) {
         try {
-            // Xử lý Modal Submit
+            // QUAN TRỌNG: Xử lý Modal Submit trước tiên
             if (interaction.isModalSubmit()) {
-                Logger.info(`Modal submit nhận được: ${interaction.customId}`);
+                console.log('📝 Modal Submit detected:', interaction.customId);
                 
-                // Kiểm tra nếu là feedback modal (customId bắt đầu bằng 'feedback_modal_')
+                // NGAY LẬP TỨC defer để tránh timeout
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.deferReply({ ephemeral: true }).catch(err => {
+                        console.error('Lỗi defer reply:', err);
+                    });
+                }
+                
+                // Kiểm tra nếu là feedback modal
                 if (interaction.customId.startsWith('feedback_modal_')) {
+                    console.log('🎯 Feedback modal detected');
+                    
                     const feedbackCommand = interaction.client.commands.get('feedbacks');
                     
                     if (!feedbackCommand) {
-                        Logger.error('Không tìm thấy command feedbacks');
-                        return interaction.reply({ 
-                            content: '❌ Lỗi hệ thống: không tìm thấy handler!', 
-                            ephemeral: true 
+                        console.error('❌ Không tìm thấy command feedbacks');
+                        return await interaction.editReply({ 
+                            content: '❌ Lỗi hệ thống: không tìm thấy handler!' 
                         });
                     }
                     
-                    if (!feedbackCommand.handleModalSubmit) {
-                        Logger.error('Command feedbacks không có method handleModalSubmit');
-                        return interaction.reply({ 
-                            content: '❌ Lỗi hệ thống: handler không hợp lệ!', 
-                            ephemeral: true 
+                    if (typeof feedbackCommand.handleModalSubmit !== 'function') {
+                        console.error('❌ handleModalSubmit không phải là function');
+                        return await interaction.editReply({ 
+                            content: '❌ Lỗi hệ thống: handler không hợp lệ!' 
                         });
                     }
                     
+                    console.log('✅ Calling handleModalSubmit...');
                     await feedbackCommand.handleModalSubmit(interaction);
                     return;
                 }
+                
+                // Modal khác không được xử lý
+                console.log('⚠️ Unknown modal:', interaction.customId);
+                return;
             }
 
             // Xử lý Button Interaction
             if (interaction.isButton()) {
-                Logger.info(`Button click: ${interaction.customId} bởi ${interaction.user.tag}`);
-                // Button interactions được xử lý bởi collector trong command
+                console.log(`🔘 Button click: ${interaction.customId}`);
+                // Button được xử lý bởi collector
                 return;
             }
 
-            // Xử lý Slash Commands (nếu có)
+            // Xử lý Slash Commands
             if (interaction.isChatInputCommand()) {
                 const command = interaction.client.commands.get(interaction.commandName);
                 
                 if (!command) {
-                    Logger.warn(`Command không tồn tại: ${interaction.commandName}`);
+                    console.warn(`⚠️ Command không tồn tại: ${interaction.commandName}`);
                     return;
                 }
 
-                Logger.info(`Executing command: ${interaction.commandName} bởi ${interaction.user.tag}`);
+                console.log(`⚡ Executing command: ${interaction.commandName}`);
                 await command.execute(interaction);
             }
 
         } catch (error) {
-            Logger.error('Lỗi trong interactionCreate:', error);
-            Logger.error('Error stack:', error.stack);
+            console.error('❌ Lỗi trong interactionCreate:', error);
+            console.error('Stack:', error.stack);
             
             const errorMessage = '❌ Có lỗi xảy ra khi xử lý tương tác!';
             
             try {
-                if (interaction.replied || interaction.deferred) {
+                if (interaction.replied) {
                     await interaction.followUp({ content: errorMessage, ephemeral: true });
+                } else if (interaction.deferred) {
+                    await interaction.editReply({ content: errorMessage });
                 } else {
                     await interaction.reply({ content: errorMessage, ephemeral: true });
                 }
             } catch (replyError) {
-                Logger.error('Không thể gửi thông báo lỗi:', replyError);
+                console.error('❌ Không thể gửi thông báo lỗi:', replyError);
             }
         }
     }
