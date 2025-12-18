@@ -95,9 +95,9 @@ module.exports = {
         }
         
         // Kiểm tra giới hạn thời gian
-        const MAX_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 ngày
+        const MAX_DURATION = 365 * 24 * 60 * 60 * 1000; // 30 ngày
         if (banDuration > MAX_DURATION) {
-            return message.reply(`❌ Thời gian ban tối đa là 30 ngày!`);
+            return message.reply(`❌ Thời gian ban tối đa là 365 ngày!`);
         }
         
         // Tính thời gian ban đến
