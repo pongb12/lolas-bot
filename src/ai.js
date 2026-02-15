@@ -1,3 +1,4 @@
+// src/ai.js
 const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -5,7 +6,7 @@ const path = require('path');
 
 const Config = require('./utils/config');
 const Logger = require('./utils/logger');
-const PromptFirewall = require('./utils/promptFirewall');
+const PromptFirewall = require('./utils/promptFirewall'); // instance exported
 
 class AIHandler {
     constructor() {
@@ -41,7 +42,14 @@ class AIHandler {
         this.watchRulesFile();
 
         /* ========= SECURITY ========= */
-        this.firewall.startCleanup();
+        // start firewall cleanup (PromptFirewall implements startCleanup())
+        try {
+            if (this.firewall && typeof this.firewall.startCleanup === 'function') {
+                this.firewall.startCleanup();
+            }
+        } catch (e) {
+            Logger.error('Failed to start firewall cleanup: ' + (e?.message || e));
+        }
 
         /* ========= CLEANUP ========= */
         this.startMemoryCleanup();
@@ -95,19 +103,23 @@ class AIHandler {
         const start = Date.now();
 
         // 🔒 BẢO MẬT LỚP 1: Prompt Firewall
-        const securityCheck = this.firewall.trackAttempt(userId, question);
-        
-        if (!securityCheck.allowed) {
-            // Xử lý đặc biệt cho owner
-            if (securityCheck.isOwner) {
-                // Owner vẫn bị từ chối nội dung nhưng có thông báo đặc biệt
-                return '👑 **Thông báo cho Admin:** Tôi không thể chia sẻ thông tin nội bộ ngay cả với bạn.';
+        try {
+            const securityCheck = await this.firewall.trackAttempt(userId, question);
+
+            if (!securityCheck.allowed) {
+                if (securityCheck.isOwner) {
+                    return '👑 **Thông báo cho Admin:** Tôi không thể chia sẻ thông tin nội bộ ngay cả với bạn.';
+                }
+
+                if (securityCheck.reason === 'banned') {
+                    return '🚫 Bạn đã bị tạm thời chặn do vi phạm bảo mật. Vui lòng thử lại sau 1 giờ.';
+                }
+                return '⚠️ Tôi không thể chia sẻ thông tin nội bộ.';
             }
-            
-            if (securityCheck.reason === 'banned') {
-                return '🚫 Bạn đã bị tạm thời chặn do vi phạm bảo mật. Vui lòng thử lại sau 1 giờ.';
-            }
-            return '⚠️ Tôi không thể chia sẻ thông tin nội bộ.';
+        } catch (e) {
+            Logger.error('Firewall error while tracking attempt: ' + (e?.message || e));
+            // Nếu firewall có lỗi, từ chối an toàn
+            return '⚠️ Lỗi bảo mật nội bộ. Vui lòng thử lại sau.';
         }
 
         // Kiểm tra cache
@@ -130,7 +142,7 @@ class AIHandler {
             }, this.apiConfig);
 
             const reply = res.data?.choices?.[0]?.message?.content;
-            if (!reply) throw new Error('Empty response');
+            if (!reply) throw new Error('Empty response from AI provider');
 
             // 🔒 BẢO MẬT LỚP 2: Sanitize Response
             const safeReply = this.firewall.sanitizeResponse(reply);
@@ -151,9 +163,9 @@ class AIHandler {
 
     buildMessages(historyData, question, type, context) {
         // 🔒 Mã hóa một phần prompt để tránh leak
-        const encodedPrompt = this.encodePrompt(this.rules.core);
-        
-        const systemPrompt = 
+        const encodedPrompt = this.encodePrompt(this.rules.core || '');
+
+        const systemPrompt =
             encodedPrompt +
             (this.rules[type] || '') +
             `\nContext: ${context || ''}` +
@@ -165,7 +177,7 @@ class AIHandler {
         let total = 0;
 
         for (let i = historyData.messages.length - 1; i >= 0; i--) {
-            total += historyData.messages[i].content.length;
+            total += (historyData.messages[i].content || '').length;
             if (total > MAX_CHARS) break;
             messages.unshift(historyData.messages[i]);
         }
@@ -176,16 +188,15 @@ class AIHandler {
 
     /* ================= PROMPT ENCODING ================= */
     encodePrompt(text) {
-        // Mã hóa đơn giản để tránh AI trả lại nguyên văn
-        if (!this.config.PROMPT_ENCODING_ENABLED) return text;
-        
-        const encoded = text
+        if (!this.config.PROMPT_ENCODING_ENABLED) return text || '';
+
+        const encoded = (text || '')
             .replace(/prompt/gi, 'p__t')
             .replace(/rule/gi, 'r__e')
             .replace(/system/gi, 's__m')
             .replace(/configuration/gi, 'c__n')
             .replace(/instruction/gi, 'i__n');
-        
+
         return encoded;
     }
 
@@ -201,8 +212,8 @@ class AIHandler {
     }
 
     updateHistory(data, question, answer) {
-        data.messages.push({ role: 'user', content: question.slice(0, 500) });
-        data.messages.push({ role: 'assistant', content: answer.slice(0, 1200) });
+        data.messages.push({ role: 'user', content: (question || '').slice(0, 500) });
+        data.messages.push({ role: 'assistant', content: (answer || '').slice(0, 1200) });
 
         const max = this.maxHistory * 2;
         if (data.messages.length > max) {
@@ -273,7 +284,7 @@ class AIHandler {
     }
 
     clearCache(uid, type) {
-        for (const k of this.requestCache.keys()) {
+        for (const k of Array.from(this.requestCache.keys())) {
             if (k.startsWith(`${uid}:${type}:`)) {
                 this.requestCache.delete(k);
             }
@@ -281,7 +292,7 @@ class AIHandler {
     }
 
     /* ================= SECURITY UTILITIES ================= */
-    
+
     // Kiểm tra xem user có bị chặn không
     isUserBlocked(userId) {
         if (typeof userId !== 'string') {
@@ -296,16 +307,16 @@ class AIHandler {
             Logger.warn(`❌ Invalid userId for unblock: ${userId}`);
             return false;
         }
-        
+
         const result = this.firewall.unbanUser(userId);
-        
+
         if (result) {
             // Clear tất cả cache và history của user khi unblock
             this.clearAllHistory(userId);
-            this.firewall.attempts.delete(userId);
+            try { this.firewall.attempts.delete(userId); } catch (e) {}
             Logger.success(`✅ User ${userId} has been unblocked and reset`);
         }
-        
+
         return result;
     }
 
@@ -315,19 +326,18 @@ class AIHandler {
             Logger.warn(`⚠️ Unauthorized block attempt by ${adminId}`);
             return { success: false, message: 'Unauthorized' };
         }
-        
+
         if (typeof userId !== 'string' || !/^\d{17,20}$/.test(userId)) {
             return { success: false, message: 'Invalid user ID' };
         }
-        
-        // Không cho phép block owner
+
         if (userId === this.config.OWNER_ID) {
             return { success: false, message: 'Cannot block owner' };
         }
-        
+
         this.firewall.banUser(userId, reason);
         Logger.warn(`🚫 User ${userId} blocked by owner. Reason: ${reason}`);
-        
+
         return { success: true, message: 'User blocked successfully' };
     }
 
@@ -336,13 +346,12 @@ class AIHandler {
         if (adminId !== this.config.OWNER_ID) {
             return { error: 'Unauthorized' };
         }
-        
+
         return this.firewall.getBannedUsers();
     }
 
     /* ================= OWNER SPECIAL FEATURES ================= */
-    
-    // Chế độ debug cho owner
+
     enableOwnerDebug(userId) {
         if (userId === this.config.OWNER_ID) {
             this.firewall.setOwnerDebugMode(true);
@@ -351,7 +360,7 @@ class AIHandler {
         }
         return '❌ Chỉ Admin mới có quyền này.';
     }
-    
+
     disableOwnerDebug(userId) {
         if (userId === this.config.OWNER_ID) {
             this.firewall.setOwnerDebugMode(false);
@@ -360,16 +369,15 @@ class AIHandler {
         }
         return '❌ Chỉ Admin mới có quyền này.';
     }
-    
-    // Xem thống kê bảo mật
+
     getSecurityStats(userId) {
         if (userId !== this.config.OWNER_ID) {
             return { error: '❌ Chỉ Admin có quyền xem thống kê bảo mật.' };
         }
-        
+
         const stats = this.firewall.getSecurityStats();
         const bannedUsers = this.firewall.getBannedUsers();
-        
+
         return {
             ...stats,
             bannedUsersList: bannedUsers,
@@ -386,15 +394,14 @@ class AIHandler {
         };
     }
 
-    // Test prompt firewall (chỉ owner)
     testPromptFirewall(userId, question) {
         if (userId !== this.config.OWNER_ID) {
             return { detected: false, message: 'Unauthorized' };
         }
-        
+
         const detected = this.firewall.isPromptLeakAttempt(question);
         const securityCheck = this.firewall.trackAttempt(userId, question);
-        
+
         return {
             detected,
             securityCheck,
@@ -406,11 +413,10 @@ class AIHandler {
     /* ================= ERROR HANDLING ================= */
 
     handleError(err, time) {
-        Logger.error('❌ AI Error', err.message);
-        
+        Logger.error('❌ AI Error', err?.message || err);
         if (err.response) {
             Logger.error(`API Error: ${err.response.status}`, err.response.data);
-            
+
             if (err.response.status === 429) {
                 return '⚠️ Quá nhiều request, thử lại sau 1 phút';
             }
@@ -422,43 +428,38 @@ class AIHandler {
                 return '❌ Server AI đang gặp sự cố. Vui lòng thử lại sau.';
             }
         }
-        
+
         if (err.code === 'ECONNABORTED') {
             return '⏰ AI phản hồi quá chậm. Vui lòng thử lại.';
         }
-        
+
         if (err.code === 'ECONNREFUSED') {
             return '🌐 Không thể kết nối đến AI service.';
         }
-        
+
         return '❌ Có lỗi xảy ra khi xử lý yêu cầu.';
     }
 
     /* ================= UTILITY METHODS ================= */
-    
-    // Reset everything for a user (chỉ owner)
+
     resetUser(userId, targetUserId) {
         if (userId !== this.config.OWNER_ID) {
             return { success: false, message: 'Unauthorized' };
         }
-        
+
         let resetCount = 0;
-        
-        // Clear history
+
         resetCount += this.clearAllHistory(targetUserId);
-        
-        // Unban user
+
         const wasBanned = this.firewall.unbanUser(targetUserId);
         if (wasBanned) resetCount++;
-        
-        // Clear attempts
-        this.firewall.attempts.delete(targetUserId);
-        
+
+        try { this.firewall.attempts.delete(targetUserId); } catch (e) {}
+
         Logger.warn(`👑 Owner ${userId} reset user ${targetUserId} (${resetCount} items)`);
         return { success: true, resetCount };
     }
-    
-    // Get system health
+
     getSystemHealth() {
         return {
             ai: {
@@ -476,23 +477,20 @@ class AIHandler {
         };
     }
 
-    /* ================= APPEAL SYSTEM HELPERS ================= */
-    
-    // Lấy thông tin chi tiết về user bị block (cho appeal)
     getUserBlockInfo(adminId, userId) {
         if (adminId !== this.config.OWNER_ID) {
             return { error: 'Unauthorized' };
         }
-        
+
         const isBlocked = this.isUserBlocked(userId);
         const attempts = this.firewall.attempts.get(userId);
-        
+
         return {
             userId,
             isBlocked,
             attempts: attempts ? {
-                count: attempts.count,
-                lastAttempt: new Date(attempts.lastAttempt).toLocaleString('vi-VN'),
+                count: attempts.length || attempts.count || 0,
+                lastAttempt: attempts.length ? new Date(attempts[attempts.length - 1]).toLocaleString('vi-VN') : null,
                 violations: attempts.violations || []
             } : null,
             hasHistory: {
@@ -501,40 +499,36 @@ class AIHandler {
             }
         };
     }
-    
-    // Xóa toàn bộ dữ liệu của một user (GDPR compliance)
+
     purgeUserData(adminId, userId) {
         if (adminId !== this.config.OWNER_ID) {
             return { success: false, message: 'Unauthorized' };
         }
-        
+
         let purgedItems = 0;
-        
-        // Clear histories
+
         if (this.publicHistories.has(userId)) {
             purgedItems += this.publicHistories.get(userId).messages.length;
             this.publicHistories.delete(userId);
         }
-        
+
         if (this.privateHistories.has(userId)) {
             purgedItems += this.privateHistories.get(userId).messages.length;
             this.privateHistories.delete(userId);
         }
-        
-        // Clear cache
-        for (const key of this.requestCache.keys()) {
+
+        for (const key of Array.from(this.requestCache.keys())) {
             if (key.startsWith(userId + ':')) {
                 this.requestCache.delete(key);
                 purgedItems++;
             }
         }
-        
-        // Clear attempts and bans
-        this.firewall.attempts.delete(userId);
+
+        try { this.firewall.attempts.delete(userId); } catch (e) {}
         this.firewall.unbanUser(userId);
-        
+
         Logger.warn(`🗑️ Owner ${adminId} purged all data for user ${userId} (${purgedItems} items)`);
-        
+
         return { success: true, purgedItems };
     }
 }
