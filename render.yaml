@@ -15,7 +15,7 @@ services:
       - key: PREFIX
         value: "."
       - key: GROQ_MODEL
-        value: "llama-3.1-8b-instant"
+        value: "meta-llama/llama-prompt-guard-2-86m"
       - key: MAX_TOKENS
         value: "1024"
       - key: MAX_HISTORY
