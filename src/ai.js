@@ -1,5 +1,5 @@
 // src/ai.js
-const axios = require('axios');
+const { Groq } = require('groq-sdk');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -17,14 +17,12 @@ class AIHandler {
             throw new Error('❌ GROQ_API_KEY chưa cấu hình');
         }
 
-        this.apiConfig = {
-            url: this.config.GROQ_API_URL,
-            headers: {
-                'Authorization': `Bearer ${this.config.GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 15000
-        };
+        // Initialize Groq SDK client
+        this.groqClient = new Groq({
+            apiKey: this.config.GROQ_API_KEY,
+            timeout: 20000,
+            maxRetries: 0  // We handle retries manually with exponential backoff
+        });
 
         /* ========= HISTORY ========= */
         this.publicHistories = new Map();
@@ -54,7 +52,7 @@ class AIHandler {
         /* ========= CLEANUP ========= */
         this.startMemoryCleanup();
 
-        Logger.success('✅ AIHandler initialized with enhanced security');
+        Logger.success('✅ AIHandler initialized with Groq SDK + enhanced security');
     }
 
     /* ================= RULES ================= */
@@ -97,6 +95,75 @@ class AIHandler {
         );
     }
 
+    /* ================= GROQ API CALLER ================= */
+
+    async callGroqWithRetry(messages, type, maxRetries = 3) {
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await this.groqClient.chat.completions.create({
+                    model: this.config.GROQ_MODEL,
+                    messages,
+                    max_completion_tokens: this.config.MAX_TOKENS || 2048,
+                    temperature: type === 'search' ? 0.3 : 0.7,
+                    top_p: this.config.TOP_P || 0.95
+                });
+
+                return response;
+            } catch (err) {
+                lastError = err;
+
+                // Check if error is retryable (429 = rate limit, network errors, etc.)
+                const isRetryable = 
+                    err.status === 429 || 
+                    err.code === 'ECONNABORTED' || 
+                    err.code === 'ECONNREFUSED' || 
+                    err.code === 'ERR_NETWORK' ||
+                    err.message?.includes('timeout');
+
+                if (isRetryable && attempt < maxRetries) {
+                    // Exponential backoff: 1s, 2s, 4s
+                    const backoffMs = Math.pow(2, attempt - 1) * 1000;
+                    Logger.warn(`⏳ Retry attempt ${attempt}/${maxRetries} in ${backoffMs}ms - ${err.message}`);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                } else {
+                    throw err;
+                }
+            }
+        }
+
+        throw lastError;
+    }
+
+    async checkSafety(question) {
+        try {
+            // Call guard model to check if input is safe
+            const guardResponse = await this.groqClient.chat.completions.create({
+                model: this.config.GUARD_MODEL,
+                messages: [{ role: 'user', content: question }],
+                max_completion_tokens: 10
+            });
+
+            const guardOutput = guardResponse.choices?.[0]?.message?.content?.toLowerCase() || '';
+
+            // Guard model outputs: "safe" or "unsafe" or confidence scores
+            const isSafe = !guardOutput.includes('unsafe') && 
+                          !guardOutput.includes('violated') && 
+                          !guardOutput.includes('not_safe');
+
+            if (!isSafe) {
+                Logger.warn(`🚨 Unsafe content detected: "${question.slice(0, 50)}..."`);
+            }
+
+            return isSafe;
+        } catch (err) {
+            Logger.error('❌ Safety check failed:', err.message);
+            // On error, default to safe/allow (fail-open to prevent false positives)
+            return true;
+        }
+    }
+
     /* ================= CORE ================= */
 
     async processRequest(userId, question, map, type, context) {
@@ -122,6 +189,19 @@ class AIHandler {
             return '⚠️ Lỗi bảo mật nội bộ. Vui lòng thử lại sau.';
         }
 
+        // 🔒 BẢO MẬT LỚP 1.5: Guard Model Safety Check (Optional)
+        if (this.config.ENABLE_GUARD_MODEL && type !== 'search') {
+            try {
+                const isSafe = await this.checkSafety(question);
+                if (!isSafe) {
+                    return '⚠️ Câu hỏi chứa nội dung không an toàn. Vui lòng thử lại với nội dung khác.';
+                }
+            } catch (e) {
+                Logger.error('Guard model error: ' + (e?.message || e));
+                // On error, continue (fail-open)
+            }
+        }
+
         // Kiểm tra cache
         const cacheKey = this.createCacheKey(userId, type, question, context);
         const cached = this.requestCache.get(cacheKey);
@@ -133,15 +213,10 @@ class AIHandler {
             const historyData = this.getHistory(map, userId);
             const messages = this.buildMessages(historyData, question, type, context);
 
-            // Gọi API
-            const res = await axios.post(this.apiConfig.url, {
-                model: this.config.GROQ_MODEL,
-                messages,
-                max_tokens: this.config.MAX_TOKENS || 1024,
-                temperature: type === 'search' ? 0.3 : 0.7
-            }, this.apiConfig);
+            // Call Groq API with retry logic
+            const res = await this.callGroqWithRetry(messages, type);
 
-            const reply = res.data?.choices?.[0]?.message?.content;
+            const reply = res.choices?.[0]?.message?.content;
             if (!reply) throw new Error('Empty response from AI provider');
 
             // 🔒 BẢO MẬT LỚP 2: Sanitize Response
@@ -414,28 +489,42 @@ class AIHandler {
 
     handleError(err, time) {
         Logger.error('❌ AI Error', err?.message || err);
-        if (err.response) {
-            Logger.error(`API Error: ${err.response.status}`, err.response.data);
 
-            if (err.response.status === 429) {
-                return '⚠️ Quá nhiều request, thử lại sau 1 phút';
-            }
-            if (err.response.status === 401) {
-                Logger.error('❌ API Key không hợp lệ!');
-                return '❌ Lỗi cấu hình. Vui lòng liên hệ admin.';
-            }
-            if (err.response.status >= 500) {
-                return '❌ Server AI đang gặp sự cố. Vui lòng thử lại sau.';
-            }
+        // Handle Groq SDK specific errors
+        if (err.status === 429) {
+            Logger.error('🚫 Rate limited by Groq API');
+            return '⚠️ Quá nhiều request, thử lại sau 1 phút';
         }
 
-        if (err.code === 'ECONNABORTED') {
+        if (err.status === 401 || err.status === 403) {
+            Logger.error('❌ API Key không hợp lệ hoặc không có quyền!');
+            return '❌ Lỗi cấu hình xác thực. Vui lòng liên hệ admin.';
+        }
+
+        if (err.status >= 500) {
+            Logger.error(`❌ Groq API server error: ${err.status}`);
+            return '❌ Server AI đang gặp sự cố. Vui lòng thử lại sau.';
+        }
+
+        // Handle network errors
+        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+            Logger.error('⏰ Request timeout');
             return '⏰ AI phản hồi quá chậm. Vui lòng thử lại.';
         }
 
-        if (err.code === 'ECONNREFUSED') {
-            return '🌐 Không thể kết nối đến AI service.';
+        if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
+            Logger.error('🌐 Không thể kết nối đến Groq API');
+            return '🌐 Không thể kết nối đến AI service. Vui lòng thử lại sau.';
         }
+
+        // Handle empty response
+        if (err.message?.includes('Empty response')) {
+            Logger.error('📭 Groq returned empty response');
+            return '❌ Groq trả về response rỗng. Vui lòng thử lại.';
+        }
+
+        // Log raw error for debugging
+        Logger.error('Raw error:', err);
 
         return '❌ Có lỗi xảy ra khi xử lý yêu cầu.';
     }

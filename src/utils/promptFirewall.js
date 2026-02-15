@@ -1,10 +1,3 @@
-// src/utils/promptFirewall.js
-/**
- * PromptFirewall - heuristic-only implementation
- * - Không load model HuggingFace (không còn warning "Unauthorized access ...")
- * - Giữ same API để tương thích với ai.js
- * - Fast, deterministic, production-friendly
- */
 
 const Logger = require('./logger');
 const Config = require('./config');

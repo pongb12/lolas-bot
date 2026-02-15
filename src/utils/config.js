@@ -16,7 +16,8 @@ class Config {
         
         // Groq API Configuration
         this.GROQ_API_KEY = process.env.GROQ_API_KEY;
-        this.GROQ_MODEL = process.env.GROQ_MODEL || 'meta-llama/llama-prompt-guard-2-86m';
+        this.GROQ_MODEL = process.env.GROQ_MODEL || 'mixtral-8x7b-32768';
+        this.GUARD_MODEL = process.env.GUARD_MODEL || 'meta-llama/llama-prompt-guard-2-86m';
         this.GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
         
         // Private Chat Settings
@@ -29,13 +30,15 @@ class Config {
         this.NODE_ENV = process.env.NODE_ENV || 'production';
         
         // AI Performance Settings
-        this.MAX_TOKENS = parseInt(process.env.MAX_TOKENS) || 1024;
+        this.MAX_TOKENS = parseInt(process.env.MAX_TOKENS) || 2048;
         this.MAX_HISTORY = parseInt(process.env.MAX_HISTORY) || 10;
         this.COOLDOWN_SECONDS = parseInt(process.env.COOLDOWN_SECONDS) || 2;
+        this.TOP_P = parseFloat(process.env.TOP_P) || 0.95;
+        this.ENABLE_GUARD_MODEL = process.env.ENABLE_GUARD_MODEL === 'true' || false;
         
         // Security Configuration
         this.BAN_THRESHOLD = parseInt(process.env.BAN_THRESHOLD) || 5;
-        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 315360000000; // 1 giờ
+        this.BAN_DURATION = parseInt(process.env.BAN_DURATION) || 3600000; // 1 giờ
         this.CACHE_DURATION = parseInt(process.env.CACHE_DURATION) || 30000; // 30 giây
         this.MAX_CACHE_SIZE = parseInt(process.env.MAX_CACHE_SIZE) || 200;
         
