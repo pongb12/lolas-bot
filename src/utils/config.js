@@ -16,7 +16,7 @@ class Config {
         
         // Groq API Configuration
         this.GROQ_API_KEY = process.env.GROQ_API_KEY;
-        this.GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+        this.GROQ_MODEL = process.env.GROQ_MODEL || 'meta-llama/llama-prompt-guard-2-86m';
         this.GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
         
         // Private Chat Settings
