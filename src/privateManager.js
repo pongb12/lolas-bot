@@ -5,11 +5,11 @@ const Logger = require('./logger');
 class PrivateChatManager {
     constructor() {
         this.config = Config;
-        this.privateChannels = new Map(); // userId -> channelData
+        this.privateChannels = new Map(); // Map<userId, channelData>
         this.cleanupInterval = null;
     }
     
-    // Khởi động cleanup service (GỌI HÀM NÀY KHI BOT READY)
+    // [FIX] Hàm khởi động dọn dẹp tự động (gọi khi Bot Ready)
     startCleanup(client) {
         if (this.cleanupInterval) return;
 
@@ -17,19 +17,20 @@ class PrivateChatManager {
         
         this.cleanupInterval = setInterval(async () => {
             const now = Date.now();
-            const timeout = this.config.PRIVATE_CHANNEL_TIMEOUT || 3600000; // 1 giờ mặc định
+            // Lấy timeout từ config hoặc mặc định 1 giờ
+            const timeout = this.config.PRIVATE_CHANNEL_TIMEOUT || 3600000; 
             
             for (const [userId, data] of this.privateChannels.entries()) {
+                // Kiểm tra thời gian không hoạt động
                 if (now - data.lastActivity > timeout) {
-                    Logger.info(`⏳ Channel của ${data.userName} đã hết hạn. Đang xóa...`);
-                    // Truyền client vào để thực hiện xóa
+                    Logger.info(`⏳ Channel của ${data.userName} đã hết hạn hoạt động.`);
+                    // [FIX] Truyền client vào để thực hiện xóa thật
                     await this.deletePrivateChannel(client, userId, 'Hết thời gian hoạt động');
                 }
             }
-        }, this.config.AUTO_CLEANUP_INTERVAL || 600000); // 10 phút check 1 lần
+        }, this.config.AUTO_CLEANUP_INTERVAL || 600000); // Check mỗi 10 phút
     }
 
-    // Dừng cleanup
     stopCleanup() {
         if (this.cleanupInterval) {
             clearInterval(this.cleanupInterval);
@@ -37,23 +38,22 @@ class PrivateChatManager {
         }
     }
 
-    // Tạo private channel
     async createPrivateChannel(guild, user) {
         try {
-            // 1. Kiểm tra giới hạn tổng
+            // 1. Kiểm tra giới hạn
             if (this.privateChannels.size >= this.config.MAX_PRIVATE_CHANNELS) {
                 throw new Error('Server đã đạt giới hạn số lượng Private Channel!');
             }
             
-            // 2. Kiểm tra xem user đã có channel chưa (FIX BUG: check ID trong cache)
+            // 2. [FIX] Kiểm tra user đã có channel chưa (Check kỹ trong Cache)
             if (this.privateChannels.has(user.id)) {
                 const existing = this.privateChannels.get(user.id);
                 const existingChannel = guild.channels.cache.get(existing.channelId);
+                
                 if (existingChannel) {
-                    return existingChannel;
+                    return existingChannel; // Trả về channel cũ nếu còn tồn tại
                 } else {
-                    // Nếu trong data có nhưng thực tế channel đã mất -> Xóa data cũ
-                    this.privateChannels.delete(user.id);
+                    this.privateChannels.delete(user.id); // Xóa data rác nếu channel đã mất
                 }
             }
             
@@ -76,8 +76,9 @@ class PrivateChatManager {
                 });
             }
             
-            // 4. Tạo channel mới
-            const channelName = `🔒-private-${user.username.slice(0, 10)}`; // Rút ngắn tên để tránh lỗi
+            // 4. Tạo Private Channel
+            // [FIX] Rút gọn tên để tránh lỗi độ dài tên kênh
+            const channelName = `🔒-private-${user.username.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}`; 
             
             const channel = await guild.channels.create({
                 name: channelName,
@@ -119,9 +120,10 @@ class PrivateChatManager {
             
             // 6. Gửi tin nhắn chào mừng
             await channel.send({
-                content: `👋 Chào ${user}, đây là không gian riêng tư của bạn.\n⚠️ Channel sẽ tự xóa sau **1 giờ** không hoạt động.`
+                content: `👋 **Xin chào ${user}!**\nĐây là không gian riêng tư của bạn với Bot.\n⚠️ Kênh sẽ tự động xóa sau **1 giờ** không hoạt động.\nSử dụng \`${this.config.PREFIX}endprvchat\` để xóa ngay lập tức.`
             });
             
+            Logger.success(`Đã tạo Private Channel cho ${user.tag}`);
             return channel;
             
         } catch (error) {
@@ -130,12 +132,11 @@ class PrivateChatManager {
         }
     }
     
-    // Lấy thông tin channel
     getPrivateChannel(userId) {
         return this.privateChannels.get(userId) || null;
     }
     
-    // Cập nhật hoạt động (Quan trọng để không bị xóa oan)
+    // [FIX] Cập nhật hoạt động để tránh bị xóa oan
     updateActivity(userId) {
         const data = this.privateChannels.get(userId);
         if (data) {
@@ -145,30 +146,30 @@ class PrivateChatManager {
         return false;
     }
     
-    // Xóa private channel
-    async deletePrivateChannel(client, userId, reason = 'User requested') {
+    // [FIX] Hàm xóa channel an toàn
+    async deletePrivateChannel(client, userId, reason = 'Unknown') {
         try {
             const data = this.privateChannels.get(userId);
             if (!data) return false;
             
-            // Xóa khỏi map trước để tránh loop
+            // Xóa khỏi Map trước để tránh loop
             this.privateChannels.delete(userId);
-
+            
             const guild = client.guilds.cache.get(data.guildId);
-            if (!guild) return false;
+            if (!guild) return false; // Bot không còn trong server
             
             const channel = guild.channels.cache.get(data.channelId);
             if (channel) {
                 await channel.delete(reason);
-                Logger.info(`🗑️ Đã xóa channel của ${data.userName} (${reason})`);
+                Logger.info(`🗑️ Đã xóa channel của ${data.userName} | Lý do: ${reason}`);
             }
             
-            // Check cleanup category
+            // Kiểm tra và xóa Category nếu rỗng
             this.cleanupEmptyCategory(guild, data.categoryId);
             return true;
             
         } catch (error) {
-            Logger.error('Lỗi xóa private channel:', error);
+            Logger.error(`Lỗi xóa private channel của user ${userId}:`, error);
             return false;
         }
     }
@@ -178,20 +179,20 @@ class PrivateChatManager {
             const category = guild.channels.cache.get(categoryId);
             if (!category) return;
             
-            // Kiểm tra xem category còn con không (cần fetch để chính xác)
             const channels = guild.channels.cache.filter(c => c.parentId === categoryId);
             if (channels.size === 0) {
                 await category.delete('Dọn dẹp category rỗng');
+                Logger.info('Đã xóa category rỗng');
             }
         } catch (e) {
-            // Bỏ qua lỗi xóa category
+            // Không quan trọng nếu lỗi xóa category
         }
     }
 
     getStats() {
         return {
             totalChannels: this.privateChannels.size,
-            activeChannels: Array.from(this.privateChannels.values()).length, // Tạm tính bằng total
+            activeChannels: this.privateChannels.size,
             users: Array.from(this.privateChannels.values()).map(d => d.userName)
         };
     }
