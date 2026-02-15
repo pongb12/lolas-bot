@@ -1,6 +1,6 @@
 const { ChannelType, PermissionsBitField } = require('discord.js');
-const Config = require('./config');
-const Logger = require('./logger');
+const Config = require('./utils/config');
+const Logger = require('./utils/logger');
 
 class PrivateChatManager {
     constructor() {
