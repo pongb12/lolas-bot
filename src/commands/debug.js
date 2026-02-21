@@ -166,7 +166,7 @@ module.exports = {
                     await message.reply({ embeds: [mlStatsEmbed] });
                     break;
                     
-                default:
+                case 'banned':
                     // Lấy danh sách user bị chặn
                     const bannedList = Array.from(ai.firewall.bannedUsers.entries())
                         .map(([userId, banUntil]) => {
